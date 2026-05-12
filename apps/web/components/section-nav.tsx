@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 type Section = {
   href: string;
   label: string;
+  icon: string;
 };
 
 type SectionNavProps = {
@@ -37,7 +38,7 @@ export function SectionNav({ sections }: SectionNavProps) {
   }, []);
 
   return (
-    <nav className="navStack">
+    <nav className="navStack" aria-label="Secciones del dashboard">
       {sections.map((section) => {
         const sectionHash = new URL(section.href, "http://localhost").hash;
         const isDashboardRoot = sectionHash === "";
@@ -47,9 +48,13 @@ export function SectionNav({ sections }: SectionNavProps) {
           <Link
             key={section.href}
             href={section.href}
-            className={`navItem${isActive ? " navItemActive" : ""}`}
+            className={`navBtn${isActive ? " active" : ""}`}
           >
+            <span className="navIcon" aria-hidden="true">
+              {section.icon}
+            </span>
             {section.label}
+            <span className="navDot" aria-hidden="true" />
           </Link>
         );
       })}

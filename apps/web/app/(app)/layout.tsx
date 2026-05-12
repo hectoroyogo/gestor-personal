@@ -4,26 +4,36 @@ import { ThemeToggle } from "../../components/theme-toggle";
 import { requireCurrentUser } from "../../lib/auth";
 
 const sections = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard#tasks", label: "Tareas" },
-  { href: "/dashboard#habits", label: "Hábitos" },
-  { href: "/dashboard#finance", label: "Finanzas" },
-  { href: "/dashboard#savings", label: "Ahorro" }
+  { href: "/dashboard", label: "Dashboard", icon: "▦" },
+  { href: "/dashboard#tasks", label: "Tareas", icon: "✓" },
+  { href: "/dashboard#habits", label: "Hábitos", icon: "◷" },
+  { href: "/dashboard#finance", label: "Finanzas", icon: "€" },
+  { href: "/dashboard#savings", label: "Ahorro", icon: "◌" }
 ];
 
 export default async function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await requireCurrentUser();
 
   return (
-    <div className="shell">
-      <aside className="sidebar glassPanel">
-        <div>
-          <p className="eyebrow">Gestor Personal</p>
-          <h2 className="sidebarTitle">{user.name}</h2>
-          <p className="mutedText">{user.email}</p>
-        </div>
+    <div className="appShell">
+      <aside className="sideNav">
+        <a className="brand" href="/dashboard" aria-label="Nexus">
+          <span className="brandIcon">N</span>
+          <span className="brandName">Nexus</span>
+        </a>
 
+        <span className="navSectionLabel">Principal</span>
         <SectionNav sections={sections} />
+
+        <div className="navSpacer" />
+
+        <div className="userCard">
+          <span className="userAvatar">{user.name.slice(0, 1).toUpperCase()}</span>
+          <div>
+            <strong>{user.name}</strong>
+            <span>{user.email}</span>
+          </div>
+        </div>
 
         <div className="sidebarActions">
           <ThemeToggle />
@@ -31,7 +41,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
         </div>
       </aside>
 
-      <main className="content">{children}</main>
+      <main className="mainWrap">{children}</main>
     </div>
   );
 }

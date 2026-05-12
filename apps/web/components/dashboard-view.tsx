@@ -1,10 +1,80 @@
-import type { getDashboard } from "@gestor/api";
 import { formatCurrency } from "@gestor/core";
 
+import {
+  CreateHabitForm,
+  CreateSavingsGoalForm,
+  CreateTaskForm,
+  TaskStatusButton
+} from "./dashboard-actions";
+import { MotivationQuote } from "./motivation-quote";
+
 type DashboardViewProps = {
-  data: Awaited<ReturnType<typeof getDashboard>>;
+  data: DashboardData;
   userName: string;
 };
+
+type TaskStatus = "todo" | "in_progress" | "done";
+type TaskPriority = "low" | "medium" | "high";
+type TransactionType = "income" | "expense" | "transfer";
+
+type DashboardData = {
+  tasks: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    status: TaskStatus;
+    priority: TaskPriority;
+  }>;
+  habits: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    streak: number;
+  }>;
+  savingsGoals: Array<{
+    id: string;
+    name: string;
+    targetAmount: number;
+    currentAmount: number;
+  }>;
+  latestTransactions: Array<{
+    id: string;
+    type: TransactionType;
+    description: string;
+    amount: number;
+    occurredAt: Date | string;
+  }>;
+  monthly: Record<string, { income: number; expense: number }>;
+};
+
+const statusLabels = {
+  todo: "Pendiente",
+  in_progress: "En curso",
+  done: "Completada"
+} as const;
+
+const priorityLabels = {
+  low: "Baja",
+  medium: "Media",
+  high: "Alta"
+} as const;
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "buenos días";
+  if (hour < 20) return "buenas tardes";
+  return "buenas noches";
+}
+
+function formatDate(date: Date | string | null | undefined) {
+  if (!date) return null;
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(new Date(date));
+}
 
 export function DashboardView({ data, userName }: DashboardViewProps) {
   const completedTasks = data.tasks.filter((task) => task.status === "done").length;
@@ -18,136 +88,218 @@ export function DashboardView({ data, userName }: DashboardViewProps) {
     if (entry.type === "expense") return sum - entry.amount;
     return sum;
   }, 0);
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const monthlySummary = data.monthly[currentMonthKey] ?? { income: 0, expense: 0 };
+  const totalSavings = data.savingsGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
+  const targetSavings = data.savingsGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
+  const savingsProgress = targetSavings > 0 ? Math.round((totalSavings / targetSavings) * 100) : 0;
 
   return (
-    <div className="dashboardStack">
-      <section className="hero glassPanel sectionAnchor" id="overview">
-        <div>
-          <p className="eyebrow">Panel principal</p>
-          <h1>Hola, {userName}</h1>
-          <p className="mutedText">
-            Tu sistema personal ya está preparado para tareas, hábitos, control financiero y ahorro.
-          </p>
-        </div>
+    <div className="dashboardPage">
+      <header className="pageHeader sectionAnchor" id="overview">
+        <h1>
+          Hola, {userName}. <span className="headerAccent">{getGreeting()}</span>
+        </h1>
+        <p>
+          Vista de control para tareas, hábitos, finanzas y ahorro. Los cambios se guardan contra
+          las APIs reales de la app.
+        </p>
+      </header>
+
+      <section className="dashboardStats" aria-label="Métricas principales">
+        <article className="dashMiniCard">
+          <span className="dashMiniIcon purple">✓</span>
+          <span className="statVal">{activeTasks}</span>
+          <span className="statLabel">Tareas activas</span>
+        </article>
+        <article className="dashMiniCard">
+          <span className="dashMiniIcon teal">◷</span>
+          <span className="statVal">{bestHabit.streak}</span>
+          <span className="statLabel">Mejor racha: {bestHabit.name}</span>
+        </article>
+        <article className="dashMiniCard">
+          <span className="dashMiniIcon green">€</span>
+          <span className="statVal">{formatCurrency(balance)}</span>
+          <span className="statLabel">Balance reciente</span>
+        </article>
+        <article className="dashMiniCard">
+          <span className="dashMiniIcon amber">%</span>
+          <span className="statVal">{savingsProgress}%</span>
+          <span className="statLabel">Progreso de ahorro</span>
+        </article>
       </section>
 
-      <section className="metricsGrid">
-        <article className="metricCard glassPanel">
-          <span className="metricLabel">Tareas activas</span>
-          <strong>{activeTasks}</strong>
-          <p className="mutedText">{completedTasks} completadas</p>
+      <section className="dashRow secGap">
+        <article className="card">
+          <div className="cardTitle">Tareas pendientes</div>
+          <div className="compactList">
+            {data.tasks.filter((task) => task.status !== "done").length === 0 ? (
+              <p className="emptyState">No hay tareas pendientes.</p>
+            ) : (
+              data.tasks
+                .filter((task) => task.status !== "done")
+                .slice(0, 4)
+                .map((task) => (
+                  <div className="compactItem" key={task.id}>
+                    <span>{task.title}</span>
+                    <span className={`badge badge-${task.priority}`}>
+                      {priorityLabels[task.priority]}
+                    </span>
+                  </div>
+                ))
+            )}
+          </div>
         </article>
-        <article className="metricCard glassPanel">
-          <span className="metricLabel">Mejor hábito</span>
-          <strong>{bestHabit.streak} días</strong>
-          <p className="mutedText">{bestHabit.name}</p>
-        </article>
-        <article className="metricCard glassPanel">
-          <span className="metricLabel">Balance reciente</span>
-          <strong>{formatCurrency(balance)}</strong>
-          <p className="mutedText">Últimos movimientos</p>
-        </article>
-        <article className="metricCard glassPanel">
-          <span className="metricLabel">Metas de ahorro</span>
-          <strong>{data.savingsGoals.length}</strong>
-          <p className="mutedText">Objetivos activos</p>
+
+        <article className="card">
+          <div className="cardTitle">Metas de ahorro</div>
+          <div className="compactList">
+            {data.savingsGoals.length === 0 ? (
+              <p className="emptyState">Crea tu primera meta de ahorro.</p>
+            ) : (
+              data.savingsGoals.slice(0, 4).map((goal) => {
+                const progress = Math.min(
+                  100,
+                  Math.round((goal.currentAmount / Math.max(goal.targetAmount, 1)) * 100)
+                );
+
+                return (
+                  <div className="savingPreview" key={goal.id}>
+                    <div className="progressLabel">
+                      <span>{goal.name}</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="progressTrack">
+                      <div className="progressFill" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </article>
       </section>
 
-      <section className="contentGrid">
-        <article className="glassPanel sectionAnchor" id="tasks">
+      <MotivationQuote />
+
+      <section className="moduleGrid">
+        <article className="card sectionAnchor moduleCard" id="tasks">
           <div className="sectionHeader">
             <div>
-              <p className="eyebrow">Tareas</p>
-              <h2>Prioridades</h2>
+              <p className="kicker">To-do list</p>
+              <h2>Tareas</h2>
             </div>
+            <span className="badge badge-purple">{completedTasks} completadas</span>
           </div>
-
-          <div className="listStack">
+          <CreateTaskForm />
+          <div className="todoList">
             {data.tasks.length === 0 ? (
-              <p className="emptyState">No hay tareas aún. Usa `POST /api/tasks` para crear la primera.</p>
+              <p className="emptyState">Añade una tarea para empezar.</p>
             ) : (
-              data.tasks.slice(0, 6).map((task) => (
-                <div className="listItem" key={task.id}>
-                  <div>
+              data.tasks.slice(0, 8).map((task) => (
+                <div className={`todoItem${task.status === "done" ? " done" : ""}`} key={task.id}>
+                  <TaskStatusButton taskId={task.id} status={task.status} />
+                  <div className="todoContent">
                     <strong>{task.title}</strong>
-                    <p className="mutedText">{task.description ?? "Sin descripción"}</p>
+                    <span>{task.description ?? "Sin descripción"}</span>
                   </div>
-                  <span className={`badge badge-${task.status}`}>{task.status}</span>
+                  <div className="itemBadges">
+                    <span className={`badge badge-${task.priority}`}>
+                      {priorityLabels[task.priority]}
+                    </span>
+                    <span className={`badge status-${task.status}`}>
+                      {statusLabels[task.status]}
+                    </span>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </article>
 
-        <article className="glassPanel sectionAnchor" id="habits">
+        <article className="card sectionAnchor moduleCard" id="habits">
           <div className="sectionHeader">
             <div>
-              <p className="eyebrow">Hábitos</p>
-              <h2>Rachas</h2>
+              <p className="kicker">Tracker</p>
+              <h2>Hábitos</h2>
             </div>
+            <span className="badge badge-teal">{data.habits.length} activos</span>
           </div>
-
-          <div className="listStack">
+          <CreateHabitForm />
+          <div className="habitList">
             {data.habits.length === 0 ? (
-              <p className="emptyState">No hay hábitos aún. Usa `POST /api/habits` para empezar.</p>
+              <p className="emptyState">Añade un hábito diario para crear racha.</p>
             ) : (
               data.habits.map((habit) => (
-                <div className="listItem" key={habit.id}>
-                  <div>
+                <div className="habitRow" key={habit.id}>
+                  <span className="habitIcon">◷</span>
+                  <div className="habitInfo">
                     <strong>{habit.name}</strong>
-                    <p className="mutedText">{habit.description ?? "Seguimiento personal"}</p>
+                    <span>{habit.description ?? "Seguimiento diario"}</span>
                   </div>
-                  <span className="badge badge-highlight">{habit.streak}d</span>
+                  <span className="badge badge-green">{habit.streak} días</span>
                 </div>
               ))
             )}
           </div>
         </article>
 
-        <article className="glassPanel sectionAnchor" id="finance">
+        <article className="card sectionAnchor moduleCard financeCard" id="finance">
           <div className="sectionHeader">
             <div>
-              <p className="eyebrow">Finanzas</p>
-              <h2>Movimientos recientes</h2>
+              <p className="kicker">Control financiero</p>
+              <h2>Finanzas</h2>
             </div>
           </div>
-
-          <div className="listStack">
+          <div className="financeTop">
+            <div className="balanceCard">
+              <span>Balance reciente</span>
+              <strong>{formatCurrency(balance)}</strong>
+            </div>
+            <div>
+              <span className="statLabel">Ingresos del mes</span>
+              <strong className="moneyPositive">{formatCurrency(monthlySummary.income)}</strong>
+            </div>
+            <div>
+              <span className="statLabel">Gastos del mes</span>
+              <strong className="moneyNegative">{formatCurrency(monthlySummary.expense)}</strong>
+            </div>
+          </div>
+          <div className="transList">
             {data.latestTransactions.length === 0 ? (
               <p className="emptyState">
-                No hay transacciones aún. Crea cuentas y usa `POST /api/transactions`.
+                Aún no hay movimientos. Crea cuentas y transacciones desde la API para verlos aquí.
               </p>
             ) : (
               data.latestTransactions.map((entry) => (
-                <div className="listItem" key={entry.id}>
-                  <div>
+                <div className="transItem" key={entry.id}>
+                  <span className={`transIcon ${entry.type}`}>{entry.type === "expense" ? "-" : "+"}</span>
+                  <div className="transInfo">
                     <strong>{entry.description}</strong>
-                    <p className="mutedText">{entry.type}</p>
+                    <span>{formatDate(entry.occurredAt) ?? entry.type}</span>
                   </div>
-                  <span className={`amount ${entry.type === "expense" ? "negative" : "positive"}`}>
+                  <strong className={`transAmount ${entry.type === "expense" ? "neg" : "pos"}`}>
                     {entry.type === "expense" ? "-" : "+"}
                     {formatCurrency(entry.amount)}
-                  </span>
+                  </strong>
                 </div>
               ))
             )}
           </div>
         </article>
 
-        <article className="glassPanel sectionAnchor" id="savings">
+        <article className="card sectionAnchor moduleCard" id="savings">
           <div className="sectionHeader">
             <div>
-              <p className="eyebrow">Ahorro</p>
-              <h2>Objetivos</h2>
+              <p className="kicker">Objetivos</p>
+              <h2>Ahorro</h2>
             </div>
+            <span className="badge badge-amber">{data.savingsGoals.length} metas</span>
           </div>
-
-          <div className="listStack">
+          <CreateSavingsGoalForm />
+          <div className="savingsList">
             {data.savingsGoals.length === 0 ? (
-              <p className="emptyState">
-                No hay metas aún. Usa `POST /api/savings-goals` para registrar objetivos.
-              </p>
+              <p className="emptyState">Añade una meta con importe objetivo.</p>
             ) : (
               data.savingsGoals.map((goal) => {
                 const progress = Math.min(
@@ -156,19 +308,17 @@ export function DashboardView({ data, userName }: DashboardViewProps) {
                 );
 
                 return (
-                  <div className="goalCard" key={goal.id}>
-                    <div className="listItem goalHeader">
-                      <div>
-                        <strong>{goal.name}</strong>
-                        <p className="mutedText">
-                          {formatCurrency(goal.currentAmount)} de {formatCurrency(goal.targetAmount)}
-                        </p>
-                      </div>
-                      <span className="badge badge-highlight">{progress}%</span>
+                  <div className="savingItem" key={goal.id}>
+                    <div className="savingHeader">
+                      <strong>{goal.name}</strong>
+                      <span>{progress}%</span>
                     </div>
-                    <div className="progressBar">
-                      <div style={{ width: `${progress}%` }} />
+                    <div className="progressTrack">
+                      <div className="progressFill green" style={{ width: `${progress}%` }} />
                     </div>
+                    <span className="savingAmounts">
+                      {formatCurrency(goal.currentAmount)} de {formatCurrency(goal.targetAmount)}
+                    </span>
                   </div>
                 );
               })

@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { storeNextLoginQuote } from "./motivation-quote";
+
 type AuthFormProps = {
   mode: "login" | "register";
 };
@@ -28,10 +30,14 @@ export function AuthForm({ mode }: AuthFormProps) {
     });
 
     if (!response.ok) {
-      const body = (await response.json()) as { error?: { message?: string } };
-      setError(body.error?.message ?? "No se pudo completar la operación");
+      const body = (await response.json().catch(() => null)) as
+        | { error?: { message?: string } }
+        | null;
+      setError(body?.error?.message ?? "No se pudo completar la operación");
       return;
     }
+
+    storeNextLoginQuote();
 
     startTransition(() => {
       router.replace("/dashboard");
@@ -40,7 +46,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <form className="authForm glassPanel" onSubmit={onSubmit}>
+    <form className="authForm card" onSubmit={onSubmit}>
       {mode === "register" && (
         <label className="field">
           <span>Nombre</span>
@@ -55,19 +61,14 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       <label className="field">
         <span>Contraseña</span>
-        <input name="password" type="password" placeholder="********" required minLength={8} />
+        <input name="password" type="password" placeholder="Mínimo 8 caracteres" required minLength={8} />
       </label>
 
       {error ? <p className="errorText">{error}</p> : null}
 
-      <button className="primaryButton" type="submit" disabled={isPending}>
-        {isPending
-          ? "Enviando..."
-          : mode === "login"
-            ? "Entrar en el dashboard"
-            : "Crear cuenta"}
+      <button className="btn btnPrimary authSubmit" type="submit" disabled={isPending}>
+        {isPending ? "Enviando..." : mode === "login" ? "Entrar" : "Crear cuenta"}
       </button>
     </form>
   );
 }
-

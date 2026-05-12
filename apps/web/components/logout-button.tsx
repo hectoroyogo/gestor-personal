@@ -19,9 +19,8 @@ export function LogoutButton() {
   }
 
   return (
-    <button className="ghostButton" type="button" onClick={handleLogout} disabled={isPending}>
+    <button className="btn sidebarButton" type="button" onClick={handleLogout} disabled={isPending}>
       {isPending ? "Cerrando..." : "Cerrar sesión"}
     </button>
   );
 }
-

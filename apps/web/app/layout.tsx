@@ -1,28 +1,28 @@
 import type { Metadata } from "next";
-import { Manrope, Space_Grotesk } from "next/font/google";
+import { Plus_Jakarta_Sans, Syne } from "next/font/google";
 
 import "./globals.css";
 
-const manrope = Manrope({
+const jakarta = Plus_Jakarta_Sans({
   variable: "--font-body",
   subsets: ["latin"]
 });
 
-const spaceGrotesk = Space_Grotesk({
+const syne = Syne({
   variable: "--font-heading",
-  subsets: ["latin"]
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"]
 });
 
 export const metadata: Metadata = {
-  title: "Gestor Personal",
+  title: "Nexus - Gestor Personal",
   description: "Dashboard personal para tareas, hábitos, finanzas y ahorro"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" data-theme="dark">
-      <body className={`${manrope.variable} ${spaceGrotesk.variable}`}>{children}</body>
+      <body className={`${jakarta.variable} ${syne.variable}`}>{children}</body>
     </html>
   );
 }
-

@@ -24,9 +24,17 @@ export function ThemeToggle() {
   }
 
   return (
-    <button className="ghostButton" type="button" onClick={toggleTheme}>
-      Tema {theme === "dark" ? "oscuro" : "claro"}
+    <button
+      className="themeToggleWrap"
+      type="button"
+      onClick={toggleTheme}
+      aria-pressed={theme === "light"}
+    >
+      <span className="themeIcon" aria-hidden="true">
+        ☼
+      </span>
+      <span>Modo claro</span>
+      <span className={`togglePill${theme === "light" ? " on" : ""}`} aria-hidden="true" />
     </button>
   );
 }
-
