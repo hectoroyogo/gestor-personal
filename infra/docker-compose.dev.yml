@@ -36,10 +36,10 @@ services:
     ports:
       - "3000:3000"
     command: >
-      sh -c "pnpm install --no-frozen-lockfile &&
+      sh -c "CI=true pnpm install --no-frozen-lockfile --force &&
       pnpm --filter @gestor/db prisma:generate &&
       pnpm --filter @gestor/db prisma:deploy &&
-      pnpm --filter @gestor/web dev"
+      pnpm --filter @gestor/web dev --hostname 0.0.0.0"
     volumes:
       - ..:/workspace
       - gestor-node-modules:/workspace/node_modules
