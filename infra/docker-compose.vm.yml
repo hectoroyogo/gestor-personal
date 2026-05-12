@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:17-alpine
-    container_name: gestor-db-dev
+    container_name: gestor-db-vm
     restart: unless-stopped
     environment:
       POSTGRES_DB: gestor_personal
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - gestor-postgres-dev:/var/lib/postgresql/data
+      - gestor-postgres-vm:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gestor -d gestor_personal"]
       interval: 10s
@@ -22,7 +22,7 @@ services:
       context: ..
       dockerfile: apps/web/Dockerfile
       target: development
-    container_name: gestor-web-dev
+    container_name: gestor-web-vm
     depends_on:
       db:
         condition: service_healthy
@@ -35,23 +35,12 @@ services:
       API_BASE_URL: http://localhost:3000/api
     ports:
       - "3000:3000"
-    command: >
-      sh -c "pnpm install --no-frozen-lockfile &&
-      pnpm --filter @gestor/db prisma:generate &&
-      pnpm --filter @gestor/db prisma:deploy &&
-      pnpm --filter @gestor/web dev"
-    volumes:
-      - ..:/workspace
-      - gestor-node-modules:/workspace/node_modules
-      - gestor-web-next:/workspace/apps/web/.next
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
-      start_period: 90s
+      start_period: 60s
       interval: 15s
       timeout: 5s
       retries: 10
 
 volumes:
-  gestor-postgres-dev:
-  gestor-node-modules:
-  gestor-web-next:
+  gestor-postgres-vm:
