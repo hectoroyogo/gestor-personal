@@ -21,7 +21,7 @@ export function DashboardView({ data, userName }: DashboardViewProps) {
 
   return (
     <div className="dashboardStack">
-      <section className="hero glassPanel">
+      <section className="hero glassPanel sectionAnchor" id="overview">
         <div>
           <p className="eyebrow">Panel principal</p>
           <h1>Hola, {userName}</h1>
@@ -55,7 +55,7 @@ export function DashboardView({ data, userName }: DashboardViewProps) {
       </section>
 
       <section className="contentGrid">
-        <article className="glassPanel">
+        <article className="glassPanel sectionAnchor" id="tasks">
           <div className="sectionHeader">
             <div>
               <p className="eyebrow">Tareas</p>
@@ -80,7 +80,7 @@ export function DashboardView({ data, userName }: DashboardViewProps) {
           </div>
         </article>
 
-        <article className="glassPanel">
+        <article className="glassPanel sectionAnchor" id="habits">
           <div className="sectionHeader">
             <div>
               <p className="eyebrow">Hábitos</p>
@@ -105,7 +105,7 @@ export function DashboardView({ data, userName }: DashboardViewProps) {
           </div>
         </article>
 
-        <article className="glassPanel">
+        <article className="glassPanel sectionAnchor" id="finance">
           <div className="sectionHeader">
             <div>
               <p className="eyebrow">Finanzas</p>
@@ -135,7 +135,7 @@ export function DashboardView({ data, userName }: DashboardViewProps) {
           </div>
         </article>
 
-        <article className="glassPanel">
+        <article className="glassPanel sectionAnchor" id="savings">
           <div className="sectionHeader">
             <div>
               <p className="eyebrow">Ahorro</p>

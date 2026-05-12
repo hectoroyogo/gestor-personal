@@ -42,6 +42,10 @@ body {
   margin: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: var(--font-body), sans-serif;
   color: var(--foreground);
@@ -211,6 +215,10 @@ input {
   gap: 20px;
 }
 
+.sectionAnchor {
+  scroll-margin-top: 24px;
+}
+
 .hero {
   border-radius: 30px;
   padding: 28px;
@@ -369,4 +377,3 @@ input {
     padding: 20px;
   }
 }
-
