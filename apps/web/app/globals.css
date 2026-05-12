@@ -391,6 +391,11 @@ h2,
 
 .navStack {
   display: grid;
+  gap: 16px;
+}
+
+.navGroup {
+  display: grid;
   gap: 5px;
 }
 
@@ -565,6 +570,22 @@ h2,
   margin: 0 auto;
 }
 
+.screenPage {
+  animation: screenFade 0.28s ease both;
+}
+
+@keyframes screenFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .pageHeader {
   margin-bottom: 28px;
 }
@@ -655,10 +676,15 @@ h2,
 }
 
 .dashRow,
-.moduleGrid {
+.moduleGrid,
+.summaryGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.summaryCard {
+  padding: 20px;
 }
 
 .cardTitle {
@@ -770,6 +796,10 @@ h2,
   padding: 20px;
 }
 
+.fullScreenCard {
+  min-height: calc(100vh - 180px);
+}
+
 .financeCard {
   grid-column: 1 / -1;
 }
@@ -830,6 +860,12 @@ h2,
   background: rgba(251, 191, 84, 0.15);
 }
 
+.badge-pink {
+  border: 1px solid rgba(249, 108, 138, 0.25);
+  color: var(--accent-3);
+  background: rgba(249, 108, 138, 0.15);
+}
+
 .inlineForm {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -851,6 +887,39 @@ h2,
 
 .todoItem.done .todoContent strong {
   text-decoration: line-through;
+}
+
+.todoFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filterChip.active {
+  border-color: rgba(124, 92, 252, 0.4);
+  color: var(--accent-1);
+  background: rgba(124, 92, 252, 0.18);
+}
+
+.screenList {
+  max-height: calc(100vh - 310px);
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-border) transparent;
 }
 
 .todoCheckbox {
@@ -919,6 +988,59 @@ h2,
   background: rgba(124, 92, 252, 0.15);
 }
 
+.habitsWeekHeader {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding-right: 14px;
+}
+
+.weekLabel {
+  width: 30px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.weekLabel.todayCol {
+  color: var(--accent-1);
+}
+
+.habitRow.expanded {
+  align-items: center;
+}
+
+.habitDays {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.habitDay {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.habitDay.done {
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+}
+
+.habitDay.today {
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+}
+
 .financeTop {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
@@ -954,6 +1076,47 @@ h2,
   font-size: clamp(28px, 5vw, 42px);
   font-weight: 800;
   text-overflow: ellipsis;
+}
+
+.financeMetricCard {
+  padding: 18px;
+}
+
+.financeMetricCard .progressTrack {
+  margin-top: 16px;
+}
+
+.financeGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
+  gap: 16px;
+}
+
+.financeBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.financeSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.financeSummary div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass-bg);
+}
+
+.financeSummary span {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .moneyPositive,
@@ -1036,6 +1199,225 @@ h2,
   background: linear-gradient(90deg, var(--accent-5), var(--accent-2));
 }
 
+.progressFill.pink {
+  background: linear-gradient(90deg, var(--accent-3), var(--accent-4));
+}
+
+/* Notes */
+.notesToolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.notesToolbar > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.noteColorBtn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.noteColorBtn.selected {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.notesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.noteCard {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.noteTitle,
+.noteBody {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.noteTitle {
+  font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+}
+
+.noteBody {
+  min-height: 86px;
+  flex: 1;
+  resize: vertical;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.noteFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.noteFooter button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+}
+
+.note-c0 {
+  border: 1px solid rgba(124, 92, 252, 0.3);
+  background: rgba(124, 92, 252, 0.2);
+}
+
+.note-c1 {
+  border: 1px solid rgba(62, 207, 207, 0.28);
+  background: rgba(62, 207, 207, 0.16);
+}
+
+.note-c2 {
+  border: 1px solid rgba(249, 108, 138, 0.28);
+  background: rgba(249, 108, 138, 0.16);
+}
+
+.note-c3 {
+  border: 1px solid rgba(251, 191, 84, 0.3);
+  background: rgba(251, 191, 84, 0.16);
+}
+
+.note-c4 {
+  border: 1px solid rgba(93, 212, 132, 0.28);
+  background: rgba(93, 212, 132, 0.16);
+}
+
+/* Pomodoro */
+.pomodoroWrap {
+  min-height: calc(100vh - 180px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 32px;
+}
+
+.pomoModes,
+.pomoControls,
+.pomoInfo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pomoModeBtn {
+  min-height: 38px;
+  padding: 8px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.pomoModeBtn.active {
+  border-color: rgba(124, 92, 252, 0.42);
+  color: var(--accent-1);
+  background: rgba(124, 92, 252, 0.18);
+}
+
+.pomoRingWrap {
+  display: grid;
+  place-items: center;
+}
+
+.pomoRing {
+  width: min(52vw, 280px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border: 12px solid rgba(124, 92, 252, 0.18);
+  border-top-color: var(--accent-2);
+  border-radius: 50%;
+  box-shadow: inset 0 0 45px rgba(62, 207, 207, 0.08), var(--shadow-card);
+}
+
+.pomoRing span {
+  font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(44px, 8vw, 72px);
+  font-weight: 800;
+}
+
+.pomoRing small {
+  color: var(--text-muted);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.pomoMainBtn {
+  min-width: 120px;
+  min-height: 54px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.pomoInfo > div {
+  min-width: 120px;
+  padding: 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  text-align: center;
+}
+
+.pomoInfo strong,
+.pomoInfo span {
+  display: block;
+}
+
+.pomoInfo strong {
+  font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  font-size: 28px;
+}
+
+.pomoInfo span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.pomoTaskCard {
+  width: min(560px, 100%);
+  padding: 18px;
+}
+
 @media (max-width: 1100px) {
   .appShell {
     display: block;
@@ -1058,7 +1440,9 @@ h2,
 
   .dashRow,
   .moduleGrid,
+  .summaryGrid,
   .financeTop,
+  .financeGrid,
   .authShell {
     grid-template-columns: 1fr;
   }
@@ -1113,6 +1497,17 @@ h2,
   .habitRow,
   .transItem {
     align-items: flex-start;
+  }
+
+  .habitRow.expanded,
+  .financeSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .habitDays {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
   }
 
   .itemBadges {

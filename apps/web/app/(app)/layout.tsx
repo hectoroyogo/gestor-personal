@@ -4,12 +4,13 @@ import { ThemeToggle } from "../../components/theme-toggle";
 import { requireCurrentUser } from "../../lib/auth";
 
 const sections = [
-  { href: "/dashboard", label: "Dashboard", icon: "▦" },
-  { href: "/dashboard#tasks", label: "Tareas", icon: "✓" },
-  { href: "/dashboard#habits", label: "Hábitos", icon: "◷" },
-  { href: "/dashboard#finance", label: "Finanzas", icon: "€" },
-  { href: "/dashboard#savings", label: "Ahorro", icon: "◌" }
-];
+  { href: "/dashboard#dashboard", label: "Dashboard", icon: "D", group: "Principal" },
+  { href: "/dashboard#todo", label: "To-Do List", icon: "T", group: "Principal" },
+  { href: "/dashboard#habits", label: "Hábitos", icon: "H", group: "Principal" },
+  { href: "/dashboard#finance", label: "Finanzas", icon: "€", group: "Principal" },
+  { href: "/dashboard#notes", label: "Bóveda de Notas", icon: "N", group: "Extras" },
+  { href: "/dashboard#pomodoro", label: "Pomodoro", icon: "P", group: "Extras" }
+] as const;
 
 export default async function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await requireCurrentUser();
@@ -17,12 +18,11 @@ export default async function AppLayout({ children }: Readonly<{ children: React
   return (
     <div className="appShell">
       <aside className="sideNav">
-        <a className="brand" href="/dashboard" aria-label="Nexus">
+        <a className="brand" href="/dashboard#dashboard" aria-label="Nexus">
           <span className="brandIcon">N</span>
           <span className="brandName">Nexus</span>
         </a>
 
-        <span className="navSectionLabel">Principal</span>
         <SectionNav sections={sections} />
 
         <div className="navSpacer" />
