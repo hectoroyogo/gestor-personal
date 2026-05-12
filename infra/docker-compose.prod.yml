@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    volumes:
+      - gestor-postgres-prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gestor -d gestor_personal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gestor-net
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      target: production
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    networks:
+      - gestor-net
+
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - ../.env
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - gestor-caddy-data:/data
+      - gestor-caddy-config:/config
+    networks:
+      - gestor-net
+
+volumes:
+  gestor-postgres-prod:
+  gestor-caddy-data:
+  gestor-caddy-config:
+
+networks:
+  gestor-net:

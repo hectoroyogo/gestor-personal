@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Gestor Personal",
+    "slug": "gestor-personal",
+    "scheme": "gestor-personal",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "experiments": {
+      "typedRoutes": true
+    },
+    "plugins": ["expo-router"],
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
+

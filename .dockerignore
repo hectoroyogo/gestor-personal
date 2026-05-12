@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+**/node_modules
+.next
+**/.next
+.expo
+**/.expo
+dist
+build
+coverage
+.turbo
+docker-data
+

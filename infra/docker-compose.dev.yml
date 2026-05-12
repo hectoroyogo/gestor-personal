@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: gestor-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gestor_personal
+      POSTGRES_USER: gestor
+      POSTGRES_PASSWORD: gestor
+    ports:
+      - "5432:5432"
+    volumes:
+      - gestor-postgres-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gestor -d gestor_personal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      target: development
+    container_name: gestor-web-dev
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql://gestor:gestor@db:5432/gestor_personal?schema=public
+      DIRECT_DATABASE_URL: postgresql://gestor:gestor@db:5432/gestor_personal?schema=public
+      APP_URL: http://localhost:3000
+      API_BASE_URL: http://localhost:3000/api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ..:/workspace
+      - gestor-node-modules:/workspace/node_modules
+      - gestor-web-next:/workspace/apps/web/.next
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  gestor-postgres-dev:
+  gestor-node-modules:
+  gestor-web-next:
+
