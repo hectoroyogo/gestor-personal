@@ -2,8 +2,8 @@ import { Prisma } from "@gestor/db";
 import { registerInputSchema } from "@gestor/core";
 import { prisma } from "@gestor/db";
 
-import { createSession, hashPassword } from "../../../../../lib/auth";
-import { created, handleRouteError, parseRequestJson } from "../../../../../lib/http";
+import { createSession, hashPassword } from "../../../../lib/auth";
+import { created, handleRouteError, parseRequestJson } from "../../../../lib/http";
 
 export async function POST(request: Request) {
   try {
@@ -60,4 +60,3 @@ export async function POST(request: Request) {
     return handleRouteError(error);
   }
 }
-

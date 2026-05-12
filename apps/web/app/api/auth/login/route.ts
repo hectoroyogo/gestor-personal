@@ -1,8 +1,8 @@
 import { loginInputSchema } from "@gestor/core";
 import { prisma } from "@gestor/db";
 
-import { createSession, verifyPassword } from "../../../../../lib/auth";
-import { handleRouteError, ok, parseRequestJson } from "../../../../../lib/http";
+import { createSession, verifyPassword } from "../../../../lib/auth";
+import { handleRouteError, ok, parseRequestJson } from "../../../../lib/http";
 
 export async function POST(request: Request) {
   try {
@@ -38,4 +38,3 @@ export async function POST(request: Request) {
     return handleRouteError(error);
   }
 }
-

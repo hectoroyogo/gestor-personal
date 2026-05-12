@@ -1,5 +1,5 @@
-import { clearSession } from "../../../../../lib/auth";
-import { handleRouteError, ok } from "../../../../../lib/http";
+import { clearSession } from "../../../../lib/auth";
+import { handleRouteError, ok } from "../../../../lib/http";
 
 export async function POST() {
   try {
@@ -9,4 +9,3 @@ export async function POST() {
     return handleRouteError(error);
   }
 }
-
