@@ -14,7 +14,7 @@ RUN pnpm install --no-frozen-lockfile
 
 FROM deps AS development
 COPY . .
-CMD ["sh", "-c", "pnpm --filter @gestor/db prisma:generate && pnpm --filter @gestor/db prisma:deploy && pnpm --filter @gestor/web dev"]
+CMD ["sh", "-c", "pnpm install --no-frozen-lockfile && pnpm --filter @gestor/db prisma:generate && pnpm --filter @gestor/db prisma:deploy && pnpm --filter @gestor/web dev"]
 
 FROM deps AS builder
 COPY . .
