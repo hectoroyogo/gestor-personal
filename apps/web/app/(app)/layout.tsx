@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { LogoutButton } from "../../components/logout-button";
+import { SectionNav } from "../../components/section-nav";
 import { ThemeToggle } from "../../components/theme-toggle";
 import { requireCurrentUser } from "../../lib/auth";
 
@@ -24,13 +23,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
           <p className="mutedText">{user.email}</p>
         </div>
 
-        <nav className="navStack">
-          {sections.map((section) => (
-            <Link key={section.href} href={section.href} className="navItem">
-              {section.label}
-            </Link>
-          ))}
-        </nav>
+        <SectionNav sections={sections} />
 
         <div className="sidebarActions">
           <ThemeToggle />
@@ -42,4 +35,3 @@ export default async function AppLayout({ children }: Readonly<{ children: React
     </div>
   );
 }
-

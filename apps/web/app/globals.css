@@ -199,6 +199,11 @@ input {
   background: transparent;
 }
 
+.navItemActive {
+  background: rgba(96, 165, 250, 0.16);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
 .sidebarActions {
   margin-top: auto;
   display: grid;
@@ -217,6 +222,11 @@ input {
 
 .sectionAnchor {
   scroll-margin-top: 24px;
+}
+
+.sectionAnchor:target {
+  border-color: rgba(96, 165, 250, 0.4);
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.16), var(--shadow);
 }
 
 .hero {
