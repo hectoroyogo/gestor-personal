@@ -4,10 +4,13 @@ import {
   type CategoryInput,
   type HabitInput,
   type HabitLogInput,
+  type HabitUpdateInput,
   type SavingsGoalInput,
+  type SavingsGoalUpdateInput,
   type TaskInput,
   type TaskUpdateInput,
   type TransactionInput,
+  type TransactionUpdateInput,
   calculateHabitStreak,
   normalizeDateOnly,
   summarizeTransactionsByMonth
@@ -29,7 +32,7 @@ function decimal(value: number) {
 }
 
 export async function getDashboard(userId: string) {
-  const [tasks, habits, transactions, savingsGoals] = await Promise.all([
+  const [tasks, habits, accounts, categories, transactions, budgets, savingsGoals] = await Promise.all([
     prisma.task.findMany({
       where: { userId },
       orderBy: [{ status: "asc" }, { dueDate: "asc" }]
@@ -39,14 +42,28 @@ export async function getDashboard(userId: string) {
       include: {
         logs: {
           orderBy: { date: "desc" },
-          take: 31
+          take: 60
         }
       }
     }),
+    listAccounts(userId),
+    prisma.category.findMany({
+      where: { userId },
+      orderBy: [{ kind: "asc" }, { name: "asc" }]
+    }),
     prisma.transaction.findMany({
       where: { userId },
+      include: {
+        account: true,
+        category: true
+      },
       orderBy: { occurredAt: "desc" },
       take: 50
+    }),
+    prisma.budget.findMany({
+      where: { userId },
+      include: { category: true },
+      orderBy: { month: "desc" }
     }),
     prisma.savingsGoal.findMany({
       where: { userId },
@@ -66,14 +83,25 @@ export async function getDashboard(userId: string) {
     id: habit.id,
     name: habit.name,
     description: habit.description,
+    frequency: habit.frequency,
+    targetCount: habit.targetCount,
     streak: calculateHabitStreak(habit.logs.map((log) => log.date)),
     completions: habit.logs.length,
-    targetCount: habit.targetCount
+    logs: habit.logs.map((log) => ({
+      id: log.id,
+      date: log.date
+    }))
   }));
 
   return {
     tasks,
     habits: habitSummary,
+    accounts,
+    categories,
+    budgets: budgets.map((budget) => ({
+      ...budget,
+      limitAmount: Number(budget.limitAmount)
+    })),
     savingsGoals: savingsGoals.map((goal) => ({
       ...goal,
       targetAmount: Number(goal.targetAmount),
@@ -81,7 +109,11 @@ export async function getDashboard(userId: string) {
     })),
     latestTransactions: transactions.slice(0, 8).map((entry) => ({
       ...entry,
-      amount: Number(entry.amount)
+      amount: Number(entry.amount),
+      account: {
+        ...entry.account,
+        initialBalance: Number(entry.account.initialBalance)
+      }
     })),
     monthly
   };
@@ -128,6 +160,20 @@ export async function updateTask(userId: string, taskId: string, input: TaskUpda
   });
 }
 
+export async function deleteTask(userId: string, taskId: string) {
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId }
+  });
+
+  if (!task) {
+    throw new AppError("Task not found", 404, "TASK_NOT_FOUND");
+  }
+
+  await prisma.task.delete({
+    where: { id: taskId }
+  });
+}
+
 export async function listHabits(userId: string) {
   const habits = await prisma.habit.findMany({
     where: { userId },
@@ -158,6 +204,40 @@ export async function createHabit(userId: string, input: HabitInput) {
   });
 }
 
+export async function updateHabit(userId: string, habitId: string, input: HabitUpdateInput) {
+  const habit = await prisma.habit.findFirst({
+    where: { id: habitId, userId }
+  });
+
+  if (!habit) {
+    throw new AppError("Habit not found", 404, "HABIT_NOT_FOUND");
+  }
+
+  return prisma.habit.update({
+    where: { id: habitId },
+    data: {
+      name: input.name,
+      description: input.description,
+      frequency: input.frequency,
+      targetCount: input.targetCount
+    }
+  });
+}
+
+export async function deleteHabit(userId: string, habitId: string) {
+  const habit = await prisma.habit.findFirst({
+    where: { id: habitId, userId }
+  });
+
+  if (!habit) {
+    throw new AppError("Habit not found", 404, "HABIT_NOT_FOUND");
+  }
+
+  await prisma.habit.delete({
+    where: { id: habitId }
+  });
+}
+
 export async function logHabit(userId: string, input: HabitLogInput) {
   const habit = await prisma.habit.findFirst({
     where: { id: input.habitId, userId }
@@ -176,6 +256,24 @@ export async function logHabit(userId: string, input: HabitLogInput) {
     },
     update: {},
     create: {
+      habitId: input.habitId,
+      userId,
+      date: normalizeDateOnly(input.date)
+    }
+  });
+}
+
+export async function deleteHabitLog(userId: string, input: HabitLogInput) {
+  const habit = await prisma.habit.findFirst({
+    where: { id: input.habitId, userId }
+  });
+
+  if (!habit) {
+    throw new AppError("Habit not found", 404, "HABIT_NOT_FOUND");
+  }
+
+  await prisma.habitLog.deleteMany({
+    where: {
       habitId: input.habitId,
       userId,
       date: normalizeDateOnly(input.date)
@@ -262,23 +360,7 @@ export async function listTransactions(userId: string) {
 }
 
 export async function createTransaction(userId: string, input: TransactionInput) {
-  const account = await prisma.account.findFirst({
-    where: { id: input.accountId, userId }
-  });
-
-  if (!account) {
-    throw new AppError("Account not found", 404, "ACCOUNT_NOT_FOUND");
-  }
-
-  if (input.categoryId) {
-    const category = await prisma.category.findFirst({
-      where: { id: input.categoryId, userId }
-    });
-
-    if (!category) {
-      throw new AppError("Category not found", 404, "CATEGORY_NOT_FOUND");
-    }
-  }
+  await assertTransactionRelations(userId, input.accountId, input.categoryId);
 
   return prisma.transaction.create({
     data: {
@@ -290,6 +372,66 @@ export async function createTransaction(userId: string, input: TransactionInput)
       amount: decimal(input.amount),
       occurredAt: input.occurredAt
     }
+  });
+}
+
+async function assertTransactionRelations(userId: string, accountId?: string, categoryId?: string | null) {
+  if (accountId) {
+    const account = await prisma.account.findFirst({
+      where: { id: accountId, userId }
+    });
+
+    if (!account) {
+      throw new AppError("Account not found", 404, "ACCOUNT_NOT_FOUND");
+    }
+  }
+
+  if (categoryId) {
+    const category = await prisma.category.findFirst({
+      where: { id: categoryId, userId }
+    });
+
+    if (!category) {
+      throw new AppError("Category not found", 404, "CATEGORY_NOT_FOUND");
+    }
+  }
+}
+
+export async function updateTransaction(userId: string, transactionId: string, input: TransactionUpdateInput) {
+  const transaction = await prisma.transaction.findFirst({
+    where: { id: transactionId, userId }
+  });
+
+  if (!transaction) {
+    throw new AppError("Transaction not found", 404, "TRANSACTION_NOT_FOUND");
+  }
+
+  await assertTransactionRelations(userId, input.accountId, input.categoryId);
+
+  return prisma.transaction.update({
+    where: { id: transactionId },
+    data: {
+      accountId: input.accountId,
+      categoryId: input.categoryId,
+      type: input.type,
+      description: input.description,
+      amount: input.amount === undefined ? undefined : decimal(input.amount),
+      occurredAt: input.occurredAt
+    }
+  });
+}
+
+export async function deleteTransaction(userId: string, transactionId: string) {
+  const transaction = await prisma.transaction.findFirst({
+    where: { id: transactionId, userId }
+  });
+
+  if (!transaction) {
+    throw new AppError("Transaction not found", 404, "TRANSACTION_NOT_FOUND");
+  }
+
+  await prisma.transaction.delete({
+    where: { id: transactionId }
   });
 }
 
@@ -360,5 +502,39 @@ export async function createSavingsGoal(userId: string, input: SavingsGoalInput)
       currentAmount: decimal(input.currentAmount),
       targetDate: input.targetDate ?? null
     }
+  });
+}
+
+export async function updateSavingsGoal(userId: string, goalId: string, input: SavingsGoalUpdateInput) {
+  const goal = await prisma.savingsGoal.findFirst({
+    where: { id: goalId, userId }
+  });
+
+  if (!goal) {
+    throw new AppError("Savings goal not found", 404, "SAVINGS_GOAL_NOT_FOUND");
+  }
+
+  return prisma.savingsGoal.update({
+    where: { id: goalId },
+    data: {
+      name: input.name,
+      targetAmount: input.targetAmount === undefined ? undefined : decimal(input.targetAmount),
+      currentAmount: input.currentAmount === undefined ? undefined : decimal(input.currentAmount),
+      targetDate: input.targetDate
+    }
+  });
+}
+
+export async function deleteSavingsGoal(userId: string, goalId: string) {
+  const goal = await prisma.savingsGoal.findFirst({
+    where: { id: goalId, userId }
+  });
+
+  if (!goal) {
+    throw new AppError("Savings goal not found", 404, "SAVINGS_GOAL_NOT_FOUND");
+  }
+
+  await prisma.savingsGoal.delete({
+    where: { id: goalId }
   });
 }

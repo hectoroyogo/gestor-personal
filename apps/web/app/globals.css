@@ -86,7 +86,8 @@ a {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -904,6 +905,8 @@ h2,
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
   font-size: 12px;
   font-weight: 800;
 }
@@ -920,6 +923,69 @@ h2,
   padding-right: 4px;
   scrollbar-width: thin;
   scrollbar-color: var(--glass-border) transparent;
+}
+
+.taskCreateForm,
+.habitCreateForm,
+.transactionForm {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.financeForm,
+.savingsCreateForm {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.taskCreateForm .glassInput:first-child,
+.habitCreateForm .glassInput:first-child,
+.transactionForm .glassInput[name="description"],
+.savingsCreateForm .glassInput:first-child {
+  grid-column: span 2;
+}
+
+.taskCreateForm .btn,
+.habitCreateForm .btn,
+.transactionForm .btn,
+.financeForm .btn,
+.savingsCreateForm .btn {
+  min-width: 88px;
+}
+
+.currencyInput {
+  max-width: 86px;
+  text-transform: uppercase;
+}
+
+.colorInput {
+  min-height: 40px;
+  padding: 4px;
+}
+
+.editItem {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+}
+
+.editItem .formError {
+  grid-column: 1 / -1;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.compactBtn {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.dangerBtn {
+  color: var(--accent-3);
 }
 
 .todoCheckbox {
@@ -1026,6 +1092,8 @@ h2,
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
   font-size: 10px;
   font-weight: 800;
 }
@@ -1090,6 +1158,10 @@ h2,
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
   gap: 16px;
+}
+
+.financeSetupCard {
+  min-width: 0;
 }
 
 .financeBadges {
@@ -1487,6 +1559,22 @@ h2,
 
   .inlineForm {
     grid-template-columns: 1fr;
+  }
+
+  .taskCreateForm,
+  .habitCreateForm,
+  .transactionForm,
+  .financeForm,
+  .savingsCreateForm,
+  .editItem {
+    grid-template-columns: 1fr;
+  }
+
+  .taskCreateForm .glassInput:first-child,
+  .habitCreateForm .glassInput:first-child,
+  .transactionForm .glassInput[name="description"],
+  .savingsCreateForm .glassInput:first-child {
+    grid-column: auto;
   }
 
   .amountInput {

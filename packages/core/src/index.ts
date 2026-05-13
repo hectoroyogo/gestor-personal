@@ -37,6 +37,11 @@ export const habitInputSchema = z.object({
   targetCount: z.number().int().min(1).max(31).default(1)
 });
 
+export const habitUpdateInputSchema = habitInputSchema.partial().refine(
+  (value) => Object.keys(value).length > 0,
+  "At least one habit field is required"
+);
+
 export const habitLogInputSchema = z.object({
   habitId: z.string().cuid(),
   date: z.coerce.date()
@@ -63,6 +68,11 @@ export const transactionInputSchema = z.object({
   occurredAt: z.coerce.date()
 });
 
+export const transactionUpdateInputSchema = transactionInputSchema.partial().refine(
+  (value) => Object.keys(value).length > 0,
+  "At least one transaction field is required"
+);
+
 export const budgetInputSchema = z.object({
   categoryId: z.string().cuid(),
   month: z.string().regex(/^\d{4}-\d{2}$/),
@@ -76,17 +86,25 @@ export const savingsGoalInputSchema = z.object({
   targetDate: z.coerce.date().optional().nullable()
 });
 
+export const savingsGoalUpdateInputSchema = savingsGoalInputSchema.partial().refine(
+  (value) => Object.keys(value).length > 0,
+  "At least one savings goal field is required"
+);
+
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 export type LoginInput = z.infer<typeof loginInputSchema>;
 export type TaskInput = z.infer<typeof taskInputSchema>;
 export type TaskUpdateInput = z.infer<typeof taskUpdateInputSchema>;
 export type HabitInput = z.infer<typeof habitInputSchema>;
+export type HabitUpdateInput = z.infer<typeof habitUpdateInputSchema>;
 export type HabitLogInput = z.infer<typeof habitLogInputSchema>;
 export type AccountInput = z.infer<typeof accountInputSchema>;
 export type CategoryInput = z.infer<typeof categoryInputSchema>;
 export type TransactionInput = z.infer<typeof transactionInputSchema>;
+export type TransactionUpdateInput = z.infer<typeof transactionUpdateInputSchema>;
 export type BudgetInput = z.infer<typeof budgetInputSchema>;
 export type SavingsGoalInput = z.infer<typeof savingsGoalInputSchema>;
+export type SavingsGoalUpdateInput = z.infer<typeof savingsGoalUpdateInputSchema>;
 
 export type DashboardMetric = {
   label: string;

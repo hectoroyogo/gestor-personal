@@ -7,13 +7,10 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("gestor-theme");
-    if (savedTheme === "light" || savedTheme === "dark") {
-      setTheme(savedTheme);
-      document.documentElement.dataset.theme = savedTheme;
-      return;
-    }
+    const nextTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
 
-    document.documentElement.dataset.theme = "dark";
+    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
   }, []);
 
   function toggleTheme() {
@@ -31,7 +28,7 @@ export function ThemeToggle() {
       aria-pressed={theme === "light"}
     >
       <span className="themeIcon" aria-hidden="true">
-        ☼
+        Sol
       </span>
       <span>Modo claro</span>
       <span className={`togglePill${theme === "light" ? " on" : ""}`} aria-hidden="true" />

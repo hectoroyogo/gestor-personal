@@ -19,4 +19,5 @@ packages/db/prisma/*.db-journal
 docker-data
 Caddyfile.autosave
 mockup-dashboard-preview.png
-
+TODO_LOCAL.md
+*.tsbuildinfo

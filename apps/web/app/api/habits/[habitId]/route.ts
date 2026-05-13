@@ -1,12 +1,12 @@
-import { deleteTask, updateTask } from "@gestor/api";
-import { taskUpdateInputSchema } from "@gestor/core";
+import { deleteHabit, updateHabit } from "@gestor/api";
+import { habitUpdateInputSchema } from "@gestor/core";
 
 import { getCurrentUser } from "../../../../lib/auth";
 import { handleRouteError, ok, parseRequestJson, serialize } from "../../../../lib/http";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ taskId: string }> }
+  { params }: { params: Promise<{ habitId: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -14,10 +14,9 @@ export async function PATCH(
       return Response.json({ error: { code: "UNAUTHORIZED", message: "Session required" } }, { status: 401 });
     }
 
-    const { taskId } = await params;
-    const payload = taskUpdateInputSchema.parse(await parseRequestJson(request));
-    const task = await updateTask(user.id, taskId, payload);
-    return ok(serialize(task));
+    const { habitId } = await params;
+    const payload = habitUpdateInputSchema.parse(await parseRequestJson(request));
+    return ok(serialize(await updateHabit(user.id, habitId, payload)));
   } catch (error) {
     return handleRouteError(error);
   }
@@ -25,7 +24,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ taskId: string }> }
+  { params }: { params: Promise<{ habitId: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -33,8 +32,8 @@ export async function DELETE(
       return Response.json({ error: { code: "UNAUTHORIZED", message: "Session required" } }, { status: 401 });
     }
 
-    const { taskId } = await params;
-    await deleteTask(user.id, taskId);
+    const { habitId } = await params;
+    await deleteHabit(user.id, habitId);
     return new Response(null, { status: 204 });
   } catch (error) {
     return handleRouteError(error);

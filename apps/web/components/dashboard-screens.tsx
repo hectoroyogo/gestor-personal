@@ -5,10 +5,24 @@ import { useEffect, useMemo, useState } from "react";
 import { formatCurrency } from "@gestor/core";
 
 import {
+  CreateAccountForm,
+  CreateBudgetForm,
+  CreateCategoryForm,
   CreateHabitForm,
   CreateSavingsGoalForm,
+  CreateTransactionForm,
   CreateTaskForm,
-  TaskStatusButton
+  HabitEditorRow,
+  SavingsGoalEditor,
+  TaskEditorRow,
+  TransactionRow,
+  type AccountActionData,
+  type BudgetActionData,
+  type CategoryActionData,
+  type HabitActionData,
+  type SavingsGoalActionData,
+  type TaskActionData,
+  type TransactionActionData
 } from "./dashboard-actions";
 import { MotivationQuote } from "./motivation-quote";
 
@@ -20,32 +34,13 @@ type NoteColor = 0 | 1 | 2 | 3 | 4;
 type PomodoroMode = "focus" | "short" | "long";
 
 export type DashboardScreenData = {
-  tasks: Array<{
-    id: string;
-    title: string;
-    description: string | null;
-    status: TaskStatus;
-    priority: TaskPriority;
-  }>;
-  habits: Array<{
-    id: string;
-    name: string;
-    description: string | null;
-    streak: number;
-  }>;
-  savingsGoals: Array<{
-    id: string;
-    name: string;
-    targetAmount: number;
-    currentAmount: number;
-  }>;
-  latestTransactions: Array<{
-    id: string;
-    type: TransactionType;
-    description: string;
-    amount: number;
-    occurredAt: Date | string;
-  }>;
+  tasks: TaskActionData[];
+  habits: HabitActionData[];
+  accounts: AccountActionData[];
+  categories: CategoryActionData[];
+  budgets: BudgetActionData[];
+  savingsGoals: SavingsGoalActionData[];
+  latestTransactions: TransactionActionData[];
   monthly: Record<string, { income: number; expense: number }>;
 };
 
@@ -131,6 +126,7 @@ function formatPomodoroTime(totalSeconds: number) {
 export function DashboardScreens({ data, userName, screen }: DashboardScreensProps) {
   const [notes, setNotes] = useState<LocalNote[]>(defaultNotes);
   const [noteColor, setNoteColor] = useState<NoteColor>(0);
+  const [taskFilter, setTaskFilter] = useState<"all" | "open" | "done" | "high">("all");
   const [pomodoroMode, setPomodoroMode] = useState<PomodoroMode>("focus");
   const [pomodoroSeconds, setPomodoroSeconds] = useState(25 * 60);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
@@ -180,11 +176,13 @@ export function DashboardScreens({ data, userName, screen }: DashboardScreensPro
       (best, current) => (current.streak > best.streak ? current : best),
       data.habits[0] ?? { streak: 0, name: "Sin hábitos aún" }
     );
-    const balance = data.latestTransactions.reduce((sum, entry) => {
-      if (entry.type === "income") return sum + entry.amount;
-      if (entry.type === "expense") return sum - entry.amount;
-      return sum;
-    }, 0);
+    const balance = data.accounts.length > 0
+      ? data.accounts.reduce((sum, account) => sum + account.balance, 0)
+      : data.latestTransactions.reduce((sum, entry) => {
+          if (entry.type === "income") return sum + entry.amount;
+          if (entry.type === "expense") return sum - entry.amount;
+          return sum;
+        }, 0);
     const currentMonthKey = new Date().toISOString().slice(0, 7);
     const monthlySummary = data.monthly[currentMonthKey] ?? { income: 0, expense: 0 };
     const totalSavings = data.savingsGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
@@ -199,6 +197,22 @@ export function DashboardScreens({ data, userName, screen }: DashboardScreensPro
       savingsProgress: targetSavings > 0 ? clampProgress(totalSavings, targetSavings) : 0
     };
   }, [data]);
+
+  const filteredTasks = useMemo(() => {
+    if (taskFilter === "open") {
+      return data.tasks.filter((task) => task.status !== "done");
+    }
+
+    if (taskFilter === "done") {
+      return data.tasks.filter((task) => task.status === "done");
+    }
+
+    if (taskFilter === "high") {
+      return data.tasks.filter((task) => task.priority === "high");
+    }
+
+    return data.tasks;
+  }, [data.tasks, taskFilter]);
 
   function addNote() {
     setNotes((currentNotes) => [
@@ -366,30 +380,27 @@ export function DashboardScreens({ data, userName, screen }: DashboardScreensPro
           <article className="card moduleCard fullScreenCard">
             <CreateTaskForm />
             <div className="todoFilters">
-              <span className="filterChip active">Todas</span>
-              <span className="filterChip">Pendientes</span>
-              <span className="filterChip">Completadas</span>
-              <span className="filterChip">Alta prioridad</span>
+              {[
+                ["all", "Todas"],
+                ["open", "Pendientes"],
+                ["done", "Completadas"],
+                ["high", "Alta prioridad"]
+              ].map(([value, label]) => (
+                <button
+                  className={`filterChip${taskFilter === value ? " active" : ""}`}
+                  key={value}
+                  type="button"
+                  onClick={() => setTaskFilter(value as typeof taskFilter)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
             <div className="todoList screenList">
-              {data.tasks.length === 0 ? (
+              {filteredTasks.length === 0 ? (
                 <p className="emptyState">Añade una tarea para empezar.</p>
               ) : (
-                data.tasks.map((task) => (
-                  <div className={`todoItem${task.status === "done" ? " done" : ""}`} key={task.id}>
-                    <TaskStatusButton taskId={task.id} status={task.status} />
-                    <div className="todoContent">
-                      <strong>{task.title}</strong>
-                      <span>{task.description ?? "Sin descripción"}</span>
-                    </div>
-                    <div className="itemBadges">
-                      <span className={`badge badge-${task.priority}`}>
-                        {priorityLabels[task.priority]}
-                      </span>
-                      <span className={`badge status-${task.status}`}>{statusLabels[task.status]}</span>
-                    </div>
-                  </div>
-                ))
+                filteredTasks.map((task) => <TaskEditorRow task={task} key={task.id} />)
               )}
             </div>
           </article>
@@ -417,27 +428,7 @@ export function DashboardScreens({ data, userName, screen }: DashboardScreensPro
               {data.habits.length === 0 ? (
                 <p className="emptyState">Añade un hábito diario para crear racha.</p>
               ) : (
-                data.habits.map((habit) => (
-                  <div className="habitRow expanded" key={habit.id}>
-                    <span className="habitIcon">H</span>
-                    <div className="habitInfo">
-                      <strong>{habit.name}</strong>
-                      <span>{habit.description ?? `${habit.streak} días de racha`}</span>
-                    </div>
-                    <div className="habitDays">
-                      {dayLabels.map((day, index) => (
-                        <span
-                          className={`habitDay${index < Math.min(habit.streak, 7) ? " done" : ""}${
-                            index === (new Date().getDay() + 6) % 7 ? " today" : ""
-                          }`}
-                          key={`${habit.id}-${day}`}
-                        >
-                          {day}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))
+                data.habits.map((habit) => <HabitEditorRow habit={habit} key={habit.id} />)
               )}
             </div>
           </article>
@@ -491,24 +482,55 @@ export function DashboardScreens({ data, userName, screen }: DashboardScreensPro
             </div>
           </section>
           <section className="financeGrid">
+            <article className="card moduleCard financeSetupCard">
+              <div className="cardTitle">Cuentas</div>
+              <CreateAccountForm />
+              <div className="compactList">
+                {data.accounts.length === 0 ? (
+                  <p className="emptyState">Crea una cuenta para registrar movimientos.</p>
+                ) : (
+                  data.accounts.map((account) => (
+                    <div className="compactItem" key={account.id}>
+                      <span>{account.name}</span>
+                      <span className="badge badge-green">{formatCurrency(account.balance, account.currency)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </article>
+            <article className="card moduleCard financeSetupCard">
+              <div className="cardTitle">Categorías y presupuesto</div>
+              <CreateCategoryForm />
+              <CreateBudgetForm categories={data.categories} />
+              <div className="compactList">
+                {data.budgets.length === 0 ? (
+                  <p className="emptyState">Define un presupuesto mensual para controlar gastos.</p>
+                ) : (
+                  data.budgets.slice(0, 5).map((budget) => (
+                    <div className="compactItem" key={budget.id}>
+                      <span>
+                        {budget.category.name} · {budget.month}
+                      </span>
+                      <span className="badge badge-amber">{formatCurrency(budget.limitAmount)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </article>
             <article className="card moduleCard">
               <div className="cardTitle">Transacciones recientes</div>
+              <CreateTransactionForm accounts={data.accounts} categories={data.categories} />
               <div className="transList screenList">
                 {data.latestTransactions.length === 0 ? (
                   <p className="emptyState">Aún no hay movimientos registrados.</p>
                 ) : (
                   data.latestTransactions.map((entry) => (
-                    <div className="transItem" key={entry.id}>
-                      <span className={`transIcon ${entry.type}`}>{entry.type === "expense" ? "-" : "+"}</span>
-                      <div className="transInfo">
-                        <strong>{entry.description}</strong>
-                        <span>{formatDate(entry.occurredAt) ?? entry.type}</span>
-                      </div>
-                      <strong className={`transAmount ${entry.type === "expense" ? "neg" : "pos"}`}>
-                        {entry.type === "expense" ? "-" : "+"}
-                        {formatCurrency(entry.amount)}
-                      </strong>
-                    </div>
+                    <TransactionRow
+                      accounts={data.accounts}
+                      categories={data.categories}
+                      transaction={entry}
+                      key={entry.id}
+                    />
                   ))
                 )}
               </div>
@@ -522,24 +544,7 @@ export function DashboardScreens({ data, userName, screen }: DashboardScreensPro
                 {data.savingsGoals.length === 0 ? (
                   <p className="emptyState">Añade una meta con importe objetivo.</p>
                 ) : (
-                  data.savingsGoals.map((goal) => {
-                    const progress = clampProgress(goal.currentAmount, goal.targetAmount);
-
-                    return (
-                      <div className="savingItem" key={goal.id}>
-                        <div className="savingHeader">
-                          <strong>{goal.name}</strong>
-                          <span>{progress}%</span>
-                        </div>
-                        <div className="progressTrack">
-                          <div className="progressFill green" style={{ width: `${progress}%` }} />
-                        </div>
-                        <span className="savingAmounts">
-                          {formatCurrency(goal.currentAmount)} de {formatCurrency(goal.targetAmount)}
-                        </span>
-                      </div>
-                    );
-                  })
+                  data.savingsGoals.map((goal) => <SavingsGoalEditor goal={goal} key={goal.id} />)
                 )}
               </div>
             </article>
