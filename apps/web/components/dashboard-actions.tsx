@@ -28,6 +28,7 @@ export type HabitActionData = {
   description: string | null;
   frequency: HabitFrequency;
   targetCount: number;
+  createdAt: Date | string;
   streak: number;
   logs: Array<{ id: string; date: Date | string }>;
 };
@@ -157,20 +158,56 @@ function dateInputValue(date: Date | string | null | undefined) {
   return new Date(date).toISOString().slice(0, 10);
 }
 
+function formatShortDate(date: Date | string) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(new Date(date));
+}
+
 function confirmDelete(message: string) {
   return window.confirm(message);
 }
 
-function weekDates() {
+function calendarDaysSince(startDate: Date | string) {
+  const createdAt = normalizeDateOnly(new Date(startDate));
   const today = normalizeDateOnly(new Date());
-  const monday = new Date(today);
-  monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
+  const cursor = new Date(createdAt);
+  cursor.setUTCDate(createdAt.getUTCDate() - createdAt.getUTCDay());
 
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(monday);
-    date.setUTCDate(monday.getUTCDate() + index);
-    return date;
-  });
+  const days: Array<{ date: Date; isInRange: boolean; isFuture: boolean }> = [];
+
+  while (cursor <= today || days.length % 7 !== 0) {
+    const date = new Date(cursor);
+    days.push({
+      date,
+      isInRange: date >= createdAt && date <= today,
+      isFuture: date > today
+    });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return days;
+}
+
+function habitProgressSummary(habit: HabitActionData, loggedDates: Set<string>) {
+  const createdAt = normalizeDateOnly(new Date(habit.createdAt));
+  const today = normalizeDateOnly(new Date());
+  const totalDays = Math.max(1, Math.floor((today.getTime() - createdAt.getTime()) / 86_400_000) + 1);
+  const completedDays = Array.from(loggedDates).filter((date) => {
+    const current = normalizeDateOnly(new Date(date));
+    return current >= createdAt && current <= today;
+  }).length;
+  const missedDays = Math.max(0, totalDays - completedDays);
+  const completionRate = Math.round((completedDays / totalDays) * 100);
+
+  return {
+    completedDays,
+    missedDays,
+    totalDays,
+    completionRate
+  };
 }
 
 export function CreateTaskForm() {
@@ -354,6 +391,8 @@ export function HabitEditorRow({ habit }: { habit: HabitActionData }) {
   const mutation = useRefreshAfterMutation();
   const [isEditing, setIsEditing] = useState(false);
   const loggedDates = new Set(habit.logs.map((log) => dateInputValue(log.date)));
+  const progressSummary = habitProgressSummary(habit, loggedDates);
+  const calendarDays = calendarDaysSince(habit.createdAt);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -415,38 +454,75 @@ export function HabitEditorRow({ habit }: { habit: HabitActionData }) {
 
   return (
     <div className="habitRow expanded">
-      <span className="habitIcon">H</span>
-      <div className="habitInfo">
-        <strong>{habit.name}</strong>
-        <span>{habit.description ?? `${habit.streak} días de racha`}</span>
+      <div className="habitHeader">
+        <span className="habitIcon">H</span>
+        <div className="habitInfo">
+          <strong>{habit.name}</strong>
+          <span>{habit.description ?? `${habit.streak} días de racha`}</span>
+        </div>
+        <div className="rowActions">
+          <button className="btn compactBtn" type="button" onClick={() => setIsEditing(true)}>
+            Editar
+          </button>
+          <button className="btn compactBtn dangerBtn" type="button" onClick={deleteHabit} disabled={mutation.isBusy}>
+            Eliminar
+          </button>
+        </div>
       </div>
-      <div className="habitDays">
-        {weekDates().map((date) => {
-          const key = dateInputValue(date);
-          const isDone = loggedDates.has(key);
-          const isToday = key === dateInputValue(new Date());
 
-          return (
-            <button
-              className={`habitDay${isDone ? " done" : ""}${isToday ? " today" : ""}`}
-              key={`${habit.id}-${key}`}
-              type="button"
-              onClick={() => toggleLog(date)}
-              disabled={mutation.isBusy}
-              aria-label={`${isDone ? "Desmarcar" : "Marcar"} ${key}`}
-            >
-              {date.toLocaleDateString("es-ES", { weekday: "short" }).slice(0, 1).toUpperCase()}
-            </button>
-          );
-        })}
-      </div>
-      <div className="rowActions">
-        <button className="btn compactBtn" type="button" onClick={() => setIsEditing(true)}>
-          Editar
-        </button>
-        <button className="btn compactBtn dangerBtn" type="button" onClick={deleteHabit} disabled={mutation.isBusy}>
-          Eliminar
-        </button>
+      <div className="habitProgressPanel">
+        <div className="habitSummaryGrid">
+          <div>
+            <strong>{progressSummary.completionRate}%</strong>
+            <span>completado</span>
+          </div>
+          <div>
+            <strong>{progressSummary.completedDays}</strong>
+            <span>días hechos</span>
+          </div>
+          <div>
+            <strong>{progressSummary.missedDays}</strong>
+            <span>sin completar</span>
+          </div>
+          <div>
+            <strong>{habit.streak}</strong>
+            <span>racha actual</span>
+          </div>
+        </div>
+
+        <div className="habitCalendarMeta">
+          <span>Desde {formatShortDate(habit.createdAt)}</span>
+          <span>{progressSummary.totalDays} días registrados</span>
+        </div>
+
+        <div className="habitContributionWrap" aria-label={`Calendario de progreso de ${habit.name}`}>
+          <div className="habitContributionGrid">
+            {calendarDays.map(({ date, isInRange, isFuture }) => {
+              const key = dateInputValue(date);
+              const isDone = loggedDates.has(key);
+              const isToday = key === dateInputValue(new Date());
+
+              return (
+                <button
+                  className={`habitContributionDay${isDone ? " done" : ""}${isToday ? " today" : ""}${!isInRange ? " muted" : ""}`}
+                  key={`${habit.id}-${key}`}
+                  type="button"
+                  onClick={() => toggleLog(date)}
+                  disabled={mutation.isBusy || !isInRange || isFuture}
+                  title={`${key}: ${isDone ? "completado" : "sin completar"}`}
+                  aria-label={`${isDone ? "Desmarcar" : "Marcar"} ${key}`}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="habitCalendarLegend" aria-hidden="true">
+          <span>Menos</span>
+          <span className="legendDot" />
+          <span className="legendDot done" />
+          <span>Más</span>
+        </div>
       </div>
       {mutation.error ? <span className="inlineError">{mutation.error}</span> : null}
     </div>

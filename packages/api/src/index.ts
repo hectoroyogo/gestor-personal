@@ -44,8 +44,7 @@ export async function getDashboard(userId: string) {
       where: { userId },
       include: {
         logs: {
-          orderBy: { date: "desc" },
-          take: 60
+          orderBy: { date: "asc" }
         }
       }
     }),
@@ -88,6 +87,7 @@ export async function getDashboard(userId: string) {
     description: habit.description,
     frequency: habit.frequency,
     targetCount: habit.targetCount,
+    createdAt: habit.createdAt,
     streak: calculateHabitStreak(habit.logs.map((log) => log.date)),
     completions: habit.logs.length,
     logs: habit.logs.map((log) => ({

@@ -73,8 +73,6 @@ const priorityLabels = {
   high: "Alta"
 } as const;
 
-const dayLabels = ["L", "M", "X", "J", "V", "S", "D"];
-
 const defaultNotes: LocalNote[] = [
   {
     id: 1,
@@ -420,13 +418,6 @@ export function DashboardScreens({ data, userName, screen }: DashboardScreensPro
           </header>
           <article className="card moduleCard fullScreenCard">
             <CreateHabitForm />
-            <div className="habitsWeekHeader">
-              {dayLabels.map((day, index) => (
-                <span className={`weekLabel${index === (new Date().getDay() + 6) % 7 ? " todayCol" : ""}`} key={day}>
-                  {day}
-                </span>
-              ))}
-            </div>
             <div className="habitList screenList">
               {data.habits.length === 0 ? (
                 <p className="emptyState">Añade un hábito diario para crear racha.</p>
