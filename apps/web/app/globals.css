@@ -729,6 +729,44 @@ h2,
   justify-content: space-between;
 }
 
+.financeListItem {
+  align-items: flex-start;
+}
+
+.financeSubList {
+  margin-bottom: 14px;
+}
+
+.listMain {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.listMain span {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listMain small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.categorySwatch {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+}
+
 .compactItem span:first-child,
 .todoContent,
 .habitInfo,
@@ -965,6 +1003,10 @@ h2,
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: start;
+}
+
+.financeEditItem {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .editItem .formError {

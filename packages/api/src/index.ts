@@ -1,7 +1,10 @@
 import {
   type AccountInput,
+  type AccountUpdateInput,
   type BudgetInput,
+  type BudgetUpdateInput,
   type CategoryInput,
+  type CategoryUpdateInput,
   type HabitInput,
   type HabitLogInput,
   type HabitUpdateInput,
@@ -292,20 +295,23 @@ export async function listAccounts(userId: string) {
     })
   ]);
 
+  const transactionStats = transactions.reduce<Record<string, { balanceDelta: number; count: number }>>((acc, entry) => {
+    const current = acc[entry.accountId] ?? { balanceDelta: 0, count: 0 };
+    const amount = Number(entry.amount);
+    current.balanceDelta += entry.type === "income" ? amount : entry.type === "expense" ? -amount : 0;
+    current.count += 1;
+    acc[entry.accountId] = current;
+    return acc;
+  }, {});
+
   return accounts.map((account) => {
-    const balance = transactions
-      .filter((entry) => entry.accountId === account.id)
-      .reduce((sum, entry) => {
-        const amount = Number(entry.amount);
-        if (entry.type === "income") return sum + amount;
-        if (entry.type === "expense") return sum - amount;
-        return sum;
-      }, Number(account.initialBalance));
+    const stats = transactionStats[account.id] ?? { balanceDelta: 0, count: 0 };
 
     return {
       ...account,
       initialBalance: Number(account.initialBalance),
-      balance
+      balance: Number(account.initialBalance) + stats.balanceDelta,
+      transactionCount: stats.count
     };
   });
 }
@@ -318,6 +324,39 @@ export async function createAccount(userId: string, input: AccountInput) {
       currency: input.currency,
       initialBalance: decimal(input.initialBalance)
     }
+  });
+}
+
+export async function updateAccount(userId: string, accountId: string, input: AccountUpdateInput) {
+  const account = await prisma.account.findFirst({
+    where: { id: accountId, userId }
+  });
+
+  if (!account) {
+    throw new AppError("Account not found", 404, "ACCOUNT_NOT_FOUND");
+  }
+
+  return prisma.account.update({
+    where: { id: accountId },
+    data: {
+      name: input.name,
+      currency: input.currency,
+      initialBalance: input.initialBalance === undefined ? undefined : decimal(input.initialBalance)
+    }
+  });
+}
+
+export async function deleteAccount(userId: string, accountId: string) {
+  const account = await prisma.account.findFirst({
+    where: { id: accountId, userId }
+  });
+
+  if (!account) {
+    throw new AppError("Account not found", 404, "ACCOUNT_NOT_FOUND");
+  }
+
+  await prisma.account.delete({
+    where: { id: accountId }
   });
 }
 
@@ -336,6 +375,39 @@ export async function createCategory(userId: string, input: CategoryInput) {
       kind: input.kind,
       color: input.color
     }
+  });
+}
+
+export async function updateCategory(userId: string, categoryId: string, input: CategoryUpdateInput) {
+  const category = await prisma.category.findFirst({
+    where: { id: categoryId, userId }
+  });
+
+  if (!category) {
+    throw new AppError("Category not found", 404, "CATEGORY_NOT_FOUND");
+  }
+
+  return prisma.category.update({
+    where: { id: categoryId },
+    data: {
+      name: input.name,
+      kind: input.kind,
+      color: input.color
+    }
+  });
+}
+
+export async function deleteCategory(userId: string, categoryId: string) {
+  const category = await prisma.category.findFirst({
+    where: { id: categoryId, userId }
+  });
+
+  if (!category) {
+    throw new AppError("Category not found", 404, "CATEGORY_NOT_FOUND");
+  }
+
+  await prisma.category.delete({
+    where: { id: categoryId }
   });
 }
 
@@ -477,6 +549,52 @@ export async function createBudget(userId: string, input: BudgetInput) {
       month: input.month,
       limitAmount: decimal(input.limitAmount)
     }
+  });
+}
+
+export async function updateBudget(userId: string, budgetId: string, input: BudgetUpdateInput) {
+  const budget = await prisma.budget.findFirst({
+    where: { id: budgetId, userId }
+  });
+
+  if (!budget) {
+    throw new AppError("Budget not found", 404, "BUDGET_NOT_FOUND");
+  }
+
+  if (input.categoryId) {
+    const category = await prisma.category.findFirst({
+      where: {
+        id: input.categoryId,
+        userId
+      }
+    });
+
+    if (!category) {
+      throw new AppError("Category not found", 404, "CATEGORY_NOT_FOUND");
+    }
+  }
+
+  return prisma.budget.update({
+    where: { id: budgetId },
+    data: {
+      categoryId: input.categoryId,
+      month: input.month,
+      limitAmount: input.limitAmount === undefined ? undefined : decimal(input.limitAmount)
+    }
+  });
+}
+
+export async function deleteBudget(userId: string, budgetId: string) {
+  const budget = await prisma.budget.findFirst({
+    where: { id: budgetId, userId }
+  });
+
+  if (!budget) {
+    throw new AppError("Budget not found", 404, "BUDGET_NOT_FOUND");
+  }
+
+  await prisma.budget.delete({
+    where: { id: budgetId }
   });
 }
 

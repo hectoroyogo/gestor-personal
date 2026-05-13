@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { formatCurrency } from "@gestor/core";
 
 import {
+  AccountRow,
+  BudgetRow,
+  CategoryRow,
   CreateAccountForm,
   CreateBudgetForm,
   CreateCategoryForm,
@@ -489,31 +492,28 @@ export function DashboardScreens({ data, userName, screen }: DashboardScreensPro
                 {data.accounts.length === 0 ? (
                   <p className="emptyState">Crea una cuenta para registrar movimientos.</p>
                 ) : (
-                  data.accounts.map((account) => (
-                    <div className="compactItem" key={account.id}>
-                      <span>{account.name}</span>
-                      <span className="badge badge-green">{formatCurrency(account.balance, account.currency)}</span>
-                    </div>
-                  ))
+                  data.accounts.map((account) => <AccountRow account={account} key={account.id} />)
                 )}
               </div>
             </article>
             <article className="card moduleCard financeSetupCard">
               <div className="cardTitle">Categorías y presupuesto</div>
               <CreateCategoryForm />
+              <div className="compactList financeSubList">
+                {data.categories.length === 0 ? (
+                  <p className="emptyState">Crea categorías para clasificar tus movimientos.</p>
+                ) : (
+                  data.categories.map((category) => <CategoryRow category={category} key={category.id} />)
+                )}
+              </div>
               <CreateBudgetForm categories={data.categories} />
               <div className="compactList">
                 {data.budgets.length === 0 ? (
                   <p className="emptyState">Define un presupuesto mensual para controlar gastos.</p>
                 ) : (
-                  data.budgets.slice(0, 5).map((budget) => (
-                    <div className="compactItem" key={budget.id}>
-                      <span>
-                        {budget.category.name} · {budget.month}
-                      </span>
-                      <span className="badge badge-amber">{formatCurrency(budget.limitAmount)}</span>
-                    </div>
-                  ))
+                  data.budgets
+                    .slice(0, 5)
+                    .map((budget) => <BudgetRow budget={budget} categories={data.categories} key={budget.id} />)
                 )}
               </div>
             </article>

@@ -53,11 +53,21 @@ export const accountInputSchema = z.object({
   initialBalance: z.number().finite().default(0)
 });
 
+export const accountUpdateInputSchema = accountInputSchema.partial().refine(
+  (value) => Object.keys(value).length > 0,
+  "At least one account field is required"
+);
+
 export const categoryInputSchema = z.object({
   name: z.string().trim().min(1).max(100),
   kind: categoryKindSchema,
   color: z.string().trim().regex(/^#([0-9a-fA-F]{6})$/).default("#2563eb")
 });
+
+export const categoryUpdateInputSchema = categoryInputSchema.partial().refine(
+  (value) => Object.keys(value).length > 0,
+  "At least one category field is required"
+);
 
 export const transactionInputSchema = z.object({
   accountId: z.string().cuid(),
@@ -79,6 +89,11 @@ export const budgetInputSchema = z.object({
   limitAmount: z.number().finite().positive()
 });
 
+export const budgetUpdateInputSchema = budgetInputSchema.partial().refine(
+  (value) => Object.keys(value).length > 0,
+  "At least one budget field is required"
+);
+
 export const savingsGoalInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
   targetAmount: z.number().finite().positive(),
@@ -99,10 +114,13 @@ export type HabitInput = z.infer<typeof habitInputSchema>;
 export type HabitUpdateInput = z.infer<typeof habitUpdateInputSchema>;
 export type HabitLogInput = z.infer<typeof habitLogInputSchema>;
 export type AccountInput = z.infer<typeof accountInputSchema>;
+export type AccountUpdateInput = z.infer<typeof accountUpdateInputSchema>;
 export type CategoryInput = z.infer<typeof categoryInputSchema>;
+export type CategoryUpdateInput = z.infer<typeof categoryUpdateInputSchema>;
 export type TransactionInput = z.infer<typeof transactionInputSchema>;
 export type TransactionUpdateInput = z.infer<typeof transactionUpdateInputSchema>;
 export type BudgetInput = z.infer<typeof budgetInputSchema>;
+export type BudgetUpdateInput = z.infer<typeof budgetUpdateInputSchema>;
 export type SavingsGoalInput = z.infer<typeof savingsGoalInputSchema>;
 export type SavingsGoalUpdateInput = z.infer<typeof savingsGoalUpdateInputSchema>;
 

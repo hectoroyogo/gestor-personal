@@ -38,6 +38,7 @@ export type AccountActionData = {
   currency: string;
   initialBalance: number;
   balance: number;
+  transactionCount: number;
 };
 
 export type CategoryActionData = {
@@ -62,7 +63,10 @@ export type TransactionActionData = {
   description: string;
   amount: number;
   occurredAt: Date | string;
-  account?: Omit<AccountActionData, "balance"> & { balance?: number };
+  account?: Omit<AccountActionData, "balance" | "transactionCount"> & {
+    balance?: number;
+    transactionCount?: number;
+  };
   category?: CategoryActionData | null;
 };
 
@@ -153,6 +157,10 @@ function dateInputValue(date: Date | string | null | undefined) {
   return new Date(date).toISOString().slice(0, 10);
 }
 
+function confirmDelete(message: string) {
+  return window.confirm(message);
+}
+
 function weekDates() {
   const today = normalizeDateOnly(new Date());
   const monday = new Date(today);
@@ -237,7 +245,7 @@ export function TaskEditorRow({ task }: { task: TaskActionData }) {
   }
 
   async function deleteTask() {
-    if (!window.confirm("¿Eliminar esta tarea?")) return;
+    if (!confirmDelete(`¿Eliminar la tarea "${task.title}"?`)) return;
 
     await mutation.run(async () => {
       await requestJson(`/api/tasks/${task.id}`, "DELETE");
@@ -375,7 +383,7 @@ export function HabitEditorRow({ habit }: { habit: HabitActionData }) {
   }
 
   async function deleteHabit() {
-    if (!window.confirm("¿Eliminar este hábito y sus registros?")) return;
+    if (!confirmDelete(`¿Eliminar el hábito "${habit.name}" y todos sus registros?`)) return;
 
     await mutation.run(async () => {
       await requestJson(`/api/habits/${habit.id}`, "DELETE");
@@ -476,6 +484,82 @@ export function CreateAccountForm() {
   );
 }
 
+export function AccountRow({ account }: { account: AccountActionData }) {
+  const mutation = useRefreshAfterMutation();
+  const [isEditing, setIsEditing] = useState(false);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+
+    await mutation.run(async () => {
+      await requestJson(`/api/accounts/${account.id}`, "PATCH", {
+        name: formString(form, "name"),
+        currency: formString(form, "currency") || "EUR",
+        initialBalance: formNumber(form, "initialBalance")
+      });
+      setIsEditing(false);
+    });
+  }
+
+  async function deleteAccount() {
+    const transactionText =
+      account.transactionCount === 1
+        ? "También se eliminará 1 transacción asociada."
+        : `También se eliminarán ${account.transactionCount} transacciones asociadas.`;
+
+    if (!confirmDelete(`¿Eliminar la cuenta "${account.name}"?\n\n${transactionText}`)) return;
+
+    await mutation.run(async () => {
+      await requestJson(`/api/accounts/${account.id}`, "DELETE");
+    });
+  }
+
+  if (isEditing) {
+    return (
+      <form className="compactItem editItem financeEditItem" onSubmit={onSubmit}>
+        <input className="glassInput" name="name" defaultValue={account.name} required maxLength={120} />
+        <input
+          className="glassInput amountInput"
+          name="initialBalance"
+          type="number"
+          step="0.01"
+          defaultValue={account.initialBalance}
+        />
+        <input className="glassInput currencyInput" name="currency" defaultValue={account.currency} maxLength={3} />
+        <div className="rowActions">
+          <button className="btn btnPrimary" type="submit" disabled={mutation.isBusy}>
+            Guardar
+          </button>
+          <button className="btn" type="button" onClick={() => setIsEditing(false)}>
+            Cancelar
+          </button>
+        </div>
+        {mutation.error ? <p className="formError">{mutation.error}</p> : null}
+      </form>
+    );
+  }
+
+  return (
+    <div className="compactItem financeListItem">
+      <div className="listMain">
+        <span>{account.name}</span>
+        <small>{account.transactionCount} transacciones</small>
+      </div>
+      <span className="badge badge-green">{formatCurrency(account.balance, account.currency)}</span>
+      <div className="rowActions">
+        <button className="btn compactBtn" type="button" onClick={() => setIsEditing(true)}>
+          Editar
+        </button>
+        <button className="btn compactBtn dangerBtn" type="button" onClick={deleteAccount} disabled={mutation.isBusy}>
+          Eliminar
+        </button>
+      </div>
+      {mutation.error ? <span className="inlineError">{mutation.error}</span> : null}
+    </div>
+  );
+}
+
 export function CreateCategoryForm() {
   const mutation = useRefreshAfterMutation();
 
@@ -508,6 +592,75 @@ export function CreateCategoryForm() {
       </button>
       {mutation.error ? <p className="formError">{mutation.error}</p> : null}
     </form>
+  );
+}
+
+export function CategoryRow({ category }: { category: CategoryActionData }) {
+  const mutation = useRefreshAfterMutation();
+  const [isEditing, setIsEditing] = useState(false);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+
+    await mutation.run(async () => {
+      await requestJson(`/api/categories/${category.id}`, "PATCH", {
+        name: formString(form, "name"),
+        kind: formString(form, "kind"),
+        color: formString(form, "color")
+      });
+      setIsEditing(false);
+    });
+  }
+
+  async function deleteCategory() {
+    if (!confirmDelete(`¿Eliminar la categoría "${category.name}"?\n\nLas transacciones conservarán el movimiento, pero quedarán sin esta categoría.`)) return;
+
+    await mutation.run(async () => {
+      await requestJson(`/api/categories/${category.id}`, "DELETE");
+    });
+  }
+
+  if (isEditing) {
+    return (
+      <form className="compactItem editItem financeEditItem" onSubmit={onSubmit}>
+        <input className="glassInput" name="name" defaultValue={category.name} required maxLength={100} />
+        <select className="glassSelect" name="kind" defaultValue={category.kind}>
+          <option value="expense">Gasto</option>
+          <option value="income">Ingreso</option>
+          <option value="savings">Ahorro</option>
+        </select>
+        <input className="glassInput colorInput" name="color" type="color" defaultValue={category.color} />
+        <div className="rowActions">
+          <button className="btn btnPrimary" type="submit" disabled={mutation.isBusy}>
+            Guardar
+          </button>
+          <button className="btn" type="button" onClick={() => setIsEditing(false)}>
+            Cancelar
+          </button>
+        </div>
+        {mutation.error ? <p className="formError">{mutation.error}</p> : null}
+      </form>
+    );
+  }
+
+  return (
+    <div className="compactItem financeListItem">
+      <div className="listMain">
+        <span>{category.name}</span>
+        <small>{category.kind}</small>
+      </div>
+      <span className="categorySwatch" style={{ backgroundColor: category.color }} aria-hidden="true" />
+      <div className="rowActions">
+        <button className="btn compactBtn" type="button" onClick={() => setIsEditing(true)}>
+          Editar
+        </button>
+        <button className="btn compactBtn dangerBtn" type="button" onClick={deleteCategory} disabled={mutation.isBusy}>
+          Eliminar
+        </button>
+      </div>
+      {mutation.error ? <span className="inlineError">{mutation.error}</span> : null}
+    </div>
   );
 }
 
@@ -613,6 +766,92 @@ export function CreateBudgetForm({ categories }: { categories: CategoryActionDat
   );
 }
 
+export function BudgetRow({
+  budget,
+  categories
+}: {
+  budget: BudgetActionData;
+  categories: CategoryActionData[];
+}) {
+  const mutation = useRefreshAfterMutation();
+  const [isEditing, setIsEditing] = useState(false);
+  const expenseCategories = categories.filter((category) => category.kind === "expense");
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+
+    await mutation.run(async () => {
+      await requestJson(`/api/budgets/${budget.id}`, "PATCH", {
+        categoryId: formString(form, "categoryId"),
+        month: formString(form, "month"),
+        limitAmount: formNumber(form, "limitAmount")
+      });
+      setIsEditing(false);
+    });
+  }
+
+  async function deleteBudget() {
+    if (!confirmDelete(`¿Eliminar el presupuesto de "${budget.category.name}" para ${budget.month}?`)) return;
+
+    await mutation.run(async () => {
+      await requestJson(`/api/budgets/${budget.id}`, "DELETE");
+    });
+  }
+
+  if (isEditing) {
+    return (
+      <form className="compactItem editItem financeEditItem" onSubmit={onSubmit}>
+        <select className="glassSelect" name="categoryId" defaultValue={budget.category.id}>
+          {expenseCategories.map((category) => (
+            <option value={category.id} key={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+        <input className="glassInput" name="month" type="month" defaultValue={budget.month} required />
+        <input
+          className="glassInput amountInput"
+          name="limitAmount"
+          type="number"
+          min="0.01"
+          step="0.01"
+          defaultValue={budget.limitAmount}
+          required
+        />
+        <div className="rowActions">
+          <button className="btn btnPrimary" type="submit" disabled={mutation.isBusy}>
+            Guardar
+          </button>
+          <button className="btn" type="button" onClick={() => setIsEditing(false)}>
+            Cancelar
+          </button>
+        </div>
+        {mutation.error ? <p className="formError">{mutation.error}</p> : null}
+      </form>
+    );
+  }
+
+  return (
+    <div className="compactItem financeListItem">
+      <div className="listMain">
+        <span>{budget.category.name}</span>
+        <small>{budget.month}</small>
+      </div>
+      <span className="badge badge-amber">{formatCurrency(budget.limitAmount)}</span>
+      <div className="rowActions">
+        <button className="btn compactBtn" type="button" onClick={() => setIsEditing(true)}>
+          Editar
+        </button>
+        <button className="btn compactBtn dangerBtn" type="button" onClick={deleteBudget} disabled={mutation.isBusy}>
+          Eliminar
+        </button>
+      </div>
+      {mutation.error ? <span className="inlineError">{mutation.error}</span> : null}
+    </div>
+  );
+}
+
 export function TransactionRow({
   transaction,
   accounts,
@@ -644,7 +883,7 @@ export function TransactionRow({
   }
 
   async function deleteTransaction() {
-    if (!window.confirm("¿Eliminar esta transacción?")) return;
+    if (!confirmDelete(`¿Eliminar la transacción "${transaction.description}"?`)) return;
 
     await mutation.run(async () => {
       await requestJson(`/api/transactions/${transaction.id}`, "DELETE");
@@ -737,7 +976,7 @@ export function SavingsGoalEditor({ goal }: { goal: SavingsGoalActionData }) {
   }
 
   async function deleteGoal() {
-    if (!window.confirm("¿Eliminar esta meta de ahorro?")) return;
+    if (!confirmDelete(`¿Eliminar la meta de ahorro "${goal.name}"?`)) return;
 
     await mutation.run(async () => {
       await requestJson(`/api/savings-goals/${goal.id}`, "DELETE");
