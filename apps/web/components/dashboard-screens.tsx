@@ -15,7 +15,7 @@ import { MotivationQuote } from "./motivation-quote";
 type TaskStatus = "todo" | "in_progress" | "done";
 type TaskPriority = "low" | "medium" | "high";
 type TransactionType = "income" | "expense" | "transfer";
-type ScreenId = "dashboard" | "todo" | "habits" | "finance" | "notes" | "pomodoro";
+export type ScreenId = "dashboard" | "todo" | "habits" | "finance" | "notes" | "pomodoro";
 type NoteColor = 0 | 1 | 2 | 3 | 4;
 type PomodoroMode = "focus" | "short" | "long";
 
@@ -52,6 +52,7 @@ export type DashboardScreenData = {
 type DashboardScreensProps = {
   data: DashboardScreenData;
   userName: string;
+  screen: ScreenId;
 };
 
 type LocalNote = {
@@ -61,8 +62,6 @@ type LocalNote = {
   color: NoteColor;
   date: string;
 };
-
-const screenIds: ScreenId[] = ["dashboard", "todo", "habits", "finance", "notes", "pomodoro"];
 
 const statusLabels = {
   todo: "Pendiente",
@@ -102,12 +101,6 @@ const defaultNotes: LocalNote[] = [
   }
 ];
 
-function getInitialScreen(): ScreenId {
-  if (typeof window === "undefined") return "dashboard";
-  const hash = window.location.hash.replace("#", "");
-  return screenIds.includes(hash as ScreenId) ? (hash as ScreenId) : "dashboard";
-}
-
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "buenos días";
@@ -135,8 +128,7 @@ function formatPomodoroTime(totalSeconds: number) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function DashboardScreens({ data, userName }: DashboardScreensProps) {
-  const [activeScreen, setActiveScreen] = useState<ScreenId>(() => getInitialScreen());
+export function DashboardScreens({ data, userName, screen }: DashboardScreensProps) {
   const [notes, setNotes] = useState<LocalNote[]>(defaultNotes);
   const [noteColor, setNoteColor] = useState<NoteColor>(0);
   const [pomodoroMode, setPomodoroMode] = useState<PomodoroMode>("focus");
@@ -144,16 +136,6 @@ export function DashboardScreens({ data, userName }: DashboardScreensProps) {
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
   const [pomodoroSessions, setPomodoroSessions] = useState(0);
   const [focusTask, setFocusTask] = useState("");
-
-  useEffect(() => {
-    function syncScreen() {
-      setActiveScreen(getInitialScreen());
-    }
-
-    syncScreen();
-    window.addEventListener("hashchange", syncScreen);
-    return () => window.removeEventListener("hashchange", syncScreen);
-  }, []);
 
   useEffect(() => {
     const savedNotes = window.localStorage.getItem("gestor-notes");
@@ -259,7 +241,7 @@ export function DashboardScreens({ data, userName }: DashboardScreensProps) {
 
   return (
     <div className="dashboardPage">
-      {activeScreen === "dashboard" && (
+      {screen === "dashboard" && (
         <section className="screenPage">
           <header className="pageHeader">
             <h1>
@@ -373,7 +355,7 @@ export function DashboardScreens({ data, userName }: DashboardScreensProps) {
         </section>
       )}
 
-      {activeScreen === "todo" && (
+      {screen === "todo" && (
         <section className="screenPage">
           <header className="pageHeader">
             <h1>
@@ -414,7 +396,7 @@ export function DashboardScreens({ data, userName }: DashboardScreensProps) {
         </section>
       )}
 
-      {activeScreen === "habits" && (
+      {screen === "habits" && (
         <section className="screenPage">
           <header className="pageHeader">
             <h1>
@@ -462,7 +444,7 @@ export function DashboardScreens({ data, userName }: DashboardScreensProps) {
         </section>
       )}
 
-      {activeScreen === "finance" && (
+      {screen === "finance" && (
         <section className="screenPage">
           <header className="pageHeader">
             <h1>
@@ -565,7 +547,7 @@ export function DashboardScreens({ data, userName }: DashboardScreensProps) {
         </section>
       )}
 
-      {activeScreen === "notes" && (
+      {screen === "notes" && (
         <section className="screenPage">
           <header className="pageHeader">
             <h1>
@@ -615,7 +597,7 @@ export function DashboardScreens({ data, userName }: DashboardScreensProps) {
         </section>
       )}
 
-      {activeScreen === "pomodoro" && (
+      {screen === "pomodoro" && (
         <section className="screenPage">
           <header className="pageHeader">
             <h1>

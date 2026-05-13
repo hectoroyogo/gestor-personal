@@ -4,12 +4,12 @@ import { ThemeToggle } from "../../components/theme-toggle";
 import { requireCurrentUser } from "../../lib/auth";
 
 const sections = [
-  { href: "/dashboard#dashboard", label: "Dashboard", icon: "D", group: "Principal" },
-  { href: "/dashboard#todo", label: "To-Do List", icon: "T", group: "Principal" },
-  { href: "/dashboard#habits", label: "Hábitos", icon: "H", group: "Principal" },
-  { href: "/dashboard#finance", label: "Finanzas", icon: "€", group: "Principal" },
-  { href: "/dashboard#notes", label: "Bóveda de Notas", icon: "N", group: "Extras" },
-  { href: "/dashboard#pomodoro", label: "Pomodoro", icon: "P", group: "Extras" }
+  { href: "/dashboard", label: "Dashboard", icon: "D", group: "Principal" },
+  { href: "/dashboard/todo", label: "To-Do List", icon: "T", group: "Principal" },
+  { href: "/dashboard/habits", label: "Hábitos", icon: "H", group: "Principal" },
+  { href: "/dashboard/finance", label: "Finanzas", icon: "€", group: "Principal" },
+  { href: "/dashboard/notes", label: "Bóveda de Notas", icon: "N", group: "Extras" },
+  { href: "/dashboard/pomodoro", label: "Pomodoro", icon: "P", group: "Extras" }
 ] as const;
 
 export default async function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
   return (
     <div className="appShell">
       <aside className="sideNav">
-        <a className="brand" href="/dashboard#dashboard" aria-label="Nexus">
+        <a className="brand" href="/dashboard" aria-label="Nexus">
           <span className="brandIcon">N</span>
           <span className="brandName">Nexus</span>
         </a>
