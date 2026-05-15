@@ -15,8 +15,7 @@ import {
   type TransactionInput,
   type TransactionUpdateInput,
   calculateHabitStreak,
-  normalizeDateOnly,
-  summarizeTransactionsByMonth
+  normalizeDateOnly
 } from "@gestor/core";
 import { Prisma, prisma } from "@gestor/db";
 
@@ -34,99 +33,287 @@ function decimal(value: number) {
   return new Prisma.Decimal(value);
 }
 
-export async function getDashboard(userId: string) {
-  const [tasks, habits, accounts, categories, transactions, budgets, savingsGoals] = await Promise.all([
-    prisma.task.findMany({
-      where: { userId },
-      orderBy: [{ status: "asc" }, { dueDate: "asc" }]
-    }),
-    prisma.habit.findMany({
-      where: { userId },
-      include: {
-        logs: {
-          orderBy: { date: "asc" }
-        }
-      }
-    }),
-    listAccounts(userId),
-    prisma.category.findMany({
-      where: { userId },
-      orderBy: [{ kind: "asc" }, { name: "asc" }]
-    }),
-    prisma.transaction.findMany({
-      where: { userId },
-      include: {
-        account: true,
-        category: true
-      },
-      orderBy: { occurredAt: "desc" },
-      take: 50
-    }),
-    prisma.budget.findMany({
-      where: { userId },
-      include: { category: true },
-      orderBy: { month: "desc" }
-    }),
-    prisma.savingsGoal.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" }
-    })
-  ]);
+function toIsoDate(value: Date | null | undefined) {
+  return value ? value.toISOString() : null;
+}
 
-  const monthly = summarizeTransactionsByMonth(
-    transactions.map((entry) => ({
-      amount: Number(entry.amount),
-      type: entry.type,
-      occurredAt: entry.occurredAt
-    }))
+function currentMonthRange(referenceDate = new Date()) {
+  const monthStart = new Date(Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth(), 1));
+  const monthEnd = new Date(Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth() + 1, 1));
+  const monthKey = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}`;
+
+  return { monthStart, monthEnd, monthKey };
+}
+
+async function getCurrentMonthSummary(userId: string) {
+  const { monthStart, monthEnd, monthKey } = currentMonthRange();
+  const transactionSums = await prisma.transaction.groupBy({
+    by: ["type"],
+    where: {
+      userId,
+      occurredAt: {
+        gte: monthStart,
+        lt: monthEnd
+      }
+    },
+    _sum: {
+      amount: true
+    }
+  });
+
+  const summary = transactionSums.reduce(
+    (acc, entry) => {
+      if (entry.type === "income") {
+        acc.income += Number(entry._sum.amount ?? 0);
+      }
+
+      if (entry.type === "expense") {
+        acc.expense += Number(entry._sum.amount ?? 0);
+      }
+
+      return acc;
+    },
+    { income: 0, expense: 0 }
   );
 
-  const habitSummary = habits.map((habit) => ({
-    id: habit.id,
-    name: habit.name,
-    description: habit.description,
-    frequency: habit.frequency,
-    targetCount: habit.targetCount,
-    createdAt: habit.createdAt,
+  return {
+    monthKey,
+    monthly: {
+      [monthKey]: summary
+    }
+  };
+}
+
+function mapTask<T extends {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "todo" | "in_progress" | "done";
+  priority: "low" | "medium" | "high";
+  dueDate: Date | null;
+}>(task: T) {
+  return {
+    ...task,
+    dueDate: toIsoDate(task.dueDate)
+  };
+}
+
+function mapHabit<T extends {
+  id: string;
+  name: string;
+  description: string | null;
+  frequency: "daily" | "weekly";
+  targetCount: number;
+  createdAt: Date;
+  logs: Array<{ id: string; date: Date }>;
+}>(habit: T) {
+  return {
+    ...habit,
+    createdAt: habit.createdAt.toISOString(),
     streak: calculateHabitStreak(habit.logs.map((log) => log.date)),
     completions: habit.logs.length,
     logs: habit.logs.map((log) => ({
-      id: log.id,
-      date: log.date
+      ...log,
+      date: log.date.toISOString()
     }))
-  }));
+  };
+}
+
+function mapCategory<T extends {
+  id: string;
+  name: string;
+  kind: "income" | "expense" | "savings";
+  color: string;
+}>(category: T) {
+  return category;
+}
+
+function mapBudget<T extends {
+  id: string;
+  month: string;
+  limitAmount: Prisma.Decimal;
+  category: {
+    id: string;
+    name: string;
+    kind: "income" | "expense" | "savings";
+    color: string;
+  };
+}>(budget: T) {
+  return {
+    ...budget,
+    limitAmount: Number(budget.limitAmount),
+    category: mapCategory(budget.category)
+  };
+}
+
+function mapSavingsGoal<T extends {
+  id: string;
+  name: string;
+  targetAmount: Prisma.Decimal;
+  currentAmount: Prisma.Decimal;
+  targetDate?: Date | null;
+}>(goal: T) {
+  return {
+    ...goal,
+    targetAmount: Number(goal.targetAmount),
+    currentAmount: Number(goal.currentAmount),
+    targetDate: toIsoDate(goal.targetDate)
+  };
+}
+
+function mapTransaction<T extends {
+  id: string;
+  accountId: string;
+  categoryId: string | null;
+  type: "income" | "expense" | "transfer";
+  description: string;
+  amount: Prisma.Decimal;
+  occurredAt: Date;
+  account: {
+    id: string;
+    name: string;
+    currency: string;
+    initialBalance: Prisma.Decimal;
+  };
+  category: {
+    id: string;
+    name: string;
+    kind: "income" | "expense" | "savings";
+    color: string;
+  } | null;
+}>(entry: T) {
+  return {
+    ...entry,
+    amount: Number(entry.amount),
+    occurredAt: entry.occurredAt.toISOString(),
+    account: {
+      ...entry.account,
+      initialBalance: Number(entry.account.initialBalance)
+    },
+    category: entry.category ? mapCategory(entry.category) : null
+  };
+}
+
+export async function getDashboard(userId: string) {
+  const [tasks, habits, finance] = await Promise.all([
+    listTasks(userId),
+    listHabitsForScreen(userId),
+    getFinanceScreen(userId)
+  ]);
 
   return {
     tasks,
-    habits: habitSummary,
-    accounts,
-    categories,
-    budgets: budgets.map((budget) => ({
-      ...budget,
-      limitAmount: Number(budget.limitAmount)
-    })),
-    savingsGoals: savingsGoals.map((goal) => ({
-      ...goal,
-      targetAmount: Number(goal.targetAmount),
-      currentAmount: Number(goal.currentAmount)
-    })),
-    latestTransactions: transactions.slice(0, 8).map((entry) => ({
-      ...entry,
-      amount: Number(entry.amount),
-      account: {
-        ...entry.account,
-        initialBalance: Number(entry.account.initialBalance)
+    habits,
+    ...finance
+  };
+}
+
+export async function getDashboardOverview(userId: string) {
+  const [taskCounts, openTasks, habits, accounts, savingsGoals, savingsTotals, monthSummary] = await Promise.all([
+    prisma.task.groupBy({
+      by: ["status"],
+      where: { userId },
+      _count: {
+        _all: true
       }
-    })),
-    monthly
+    }),
+    prisma.task.findMany({
+      where: {
+        userId,
+        status: {
+          not: "done"
+        }
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        dueDate: true
+      },
+      orderBy: [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }],
+      take: 4
+    }),
+    prisma.habit.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        logs: {
+          select: { date: true },
+          orderBy: { date: "desc" }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    }),
+    listAccounts(userId),
+    prisma.savingsGoal.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        targetAmount: true,
+        currentAmount: true,
+        targetDate: true
+      },
+      orderBy: { createdAt: "desc" },
+      take: 3
+    }),
+    prisma.savingsGoal.aggregate({
+      where: { userId },
+      _sum: {
+        targetAmount: true,
+        currentAmount: true
+      }
+    }),
+    getCurrentMonthSummary(userId)
+  ]);
+
+  const completedTasks = taskCounts.find((entry) => entry.status === "done")?._count._all ?? 0;
+  const activeTasks = taskCounts.reduce(
+    (total, entry) => total + (entry.status === "done" ? 0 : entry._count._all),
+    0
+  );
+  const topHabits = habits.slice(0, 4).map((habit) => ({
+    id: habit.id,
+    name: habit.name,
+    streak: calculateHabitStreak(habit.logs.map((log) => log.date))
+  }));
+  const bestHabit = habits.reduce(
+    (best, habit) => {
+      const streak = calculateHabitStreak(habit.logs.map((log) => log.date));
+      return streak > best.streak ? { id: habit.id, name: habit.name, streak } : best;
+    },
+    { id: "", name: "Sin hábitos aún", streak: 0 }
+  );
+  const balance = accounts.reduce((sum, account) => sum + account.balance, 0);
+  const totalSavings = Number(savingsTotals._sum.currentAmount ?? 0);
+  const targetSavings = Number(savingsTotals._sum.targetAmount ?? 0);
+
+  return {
+    taskStats: {
+      active: activeTasks,
+      completed: completedTasks
+    },
+    openTasks: openTasks.map(mapTask),
+    topHabits,
+    bestHabit,
+    balance,
+    monthly: monthSummary.monthly,
+    currentMonthKey: monthSummary.monthKey,
+    savingsGoals: savingsGoals.map(mapSavingsGoal),
+    savingsProgress: targetSavings > 0 ? Math.min(100, Math.round((totalSavings / targetSavings) * 100)) : 0
   };
 }
 
 export async function listTasks(userId: string) {
-  return prisma.task.findMany({
+  const tasks = await prisma.task.findMany({
     where: { userId },
     orderBy: [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }]
   });
+
+  return tasks.map(mapTask);
 }
 
 export async function createTask(userId: string, input: TaskInput) {
@@ -189,10 +376,31 @@ export async function listHabits(userId: string) {
     orderBy: { createdAt: "desc" }
   });
 
-  return habits.map((habit) => ({
-    ...habit,
-    streak: calculateHabitStreak(habit.logs.map((log) => log.date))
-  }));
+  return habits.map(mapHabit);
+}
+
+export async function listHabitsForScreen(userId: string) {
+  const habits = await prisma.habit.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      frequency: true,
+      targetCount: true,
+      createdAt: true,
+      logs: {
+        select: {
+          id: true,
+          date: true
+        },
+        orderBy: { date: "asc" }
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  return habits.map(mapHabit);
 }
 
 export async function createHabit(userId: string, input: HabitInput) {
@@ -285,21 +493,37 @@ export async function deleteHabitLog(userId: string, input: HabitLogInput) {
 }
 
 export async function listAccounts(userId: string) {
-  const [accounts, transactions] = await Promise.all([
+  const [accounts, transactionGroups] = await Promise.all([
     prisma.account.findMany({
       where: { userId },
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        currency: true,
+        initialBalance: true,
+        createdAt: true,
+        updatedAt: true
+      },
       orderBy: { createdAt: "asc" }
     }),
-    prisma.transaction.findMany({
-      where: { userId }
+    prisma.transaction.groupBy({
+      by: ["accountId", "type"],
+      where: { userId },
+      _sum: {
+        amount: true
+      },
+      _count: {
+        _all: true
+      }
     })
   ]);
 
-  const transactionStats = transactions.reduce<Record<string, { balanceDelta: number; count: number }>>((acc, entry) => {
+  const transactionStats = transactionGroups.reduce<Record<string, { balanceDelta: number; count: number }>>((acc, entry) => {
     const current = acc[entry.accountId] ?? { balanceDelta: 0, count: 0 };
-    const amount = Number(entry.amount);
+    const amount = Number(entry._sum.amount ?? 0);
     current.balanceDelta += entry.type === "income" ? amount : entry.type === "expense" ? -amount : 0;
-    current.count += 1;
+    current.count += entry._count._all;
     acc[entry.accountId] = current;
     return acc;
   }, {});
@@ -361,10 +585,12 @@ export async function deleteAccount(userId: string, accountId: string) {
 }
 
 export async function listCategories(userId: string) {
-  return prisma.category.findMany({
+  const categories = await prisma.category.findMany({
     where: { userId },
     orderBy: [{ kind: "asc" }, { name: "asc" }]
   });
+
+  return categories.map(mapCategory);
 }
 
 export async function createCategory(userId: string, input: CategoryInput) {
@@ -421,14 +647,7 @@ export async function listTransactions(userId: string) {
     orderBy: { occurredAt: "desc" }
   });
 
-  return transactions.map((entry) => ({
-    ...entry,
-    amount: Number(entry.amount),
-    account: {
-      ...entry.account,
-      initialBalance: Number(entry.account.initialBalance)
-    }
-  }));
+  return transactions.map(mapTransaction);
 }
 
 export async function createTransaction(userId: string, input: TransactionInput) {
@@ -514,10 +733,7 @@ export async function listBudgets(userId: string) {
     orderBy: { month: "desc" }
   });
 
-  return budgets.map((budget) => ({
-    ...budget,
-    limitAmount: Number(budget.limitAmount)
-  }));
+  return budgets.map(mapBudget);
 }
 
 export async function createBudget(userId: string, input: BudgetInput) {
@@ -604,11 +820,57 @@ export async function listSavingsGoals(userId: string) {
     orderBy: { createdAt: "desc" }
   });
 
-  return goals.map((goal) => ({
-    ...goal,
-    targetAmount: Number(goal.targetAmount),
-    currentAmount: Number(goal.currentAmount)
-  }));
+  return goals.map(mapSavingsGoal);
+}
+
+export async function getFinanceScreen(userId: string) {
+  const [accounts, categories, budgets, savingsGoals, latestTransactions, monthSummary] = await Promise.all([
+    listAccounts(userId),
+    listCategories(userId),
+    listBudgets(userId),
+    listSavingsGoals(userId),
+    prisma.transaction.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        accountId: true,
+        categoryId: true,
+        type: true,
+        description: true,
+        amount: true,
+        occurredAt: true,
+        account: {
+          select: {
+            id: true,
+            name: true,
+            currency: true,
+            initialBalance: true
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            kind: true,
+            color: true
+          }
+        }
+      },
+      orderBy: { occurredAt: "desc" },
+      take: 8
+    }),
+    getCurrentMonthSummary(userId)
+  ]);
+
+  return {
+    accounts,
+    categories,
+    budgets: budgets.slice(0, 5),
+    savingsGoals,
+    latestTransactions: latestTransactions.map(mapTransaction),
+    monthly: monthSummary.monthly,
+    currentMonthKey: monthSummary.monthKey
+  };
 }
 
 export async function createSavingsGoal(userId: string, input: SavingsGoalInput) {

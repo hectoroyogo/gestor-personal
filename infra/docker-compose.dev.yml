@@ -36,7 +36,7 @@ services:
     ports:
       - "3000:3000"
     command: >
-      sh -c "CI=true pnpm install --no-frozen-lockfile --force &&
+      sh -c "CI=true pnpm install --frozen-lockfile --prefer-offline &&
       pnpm --filter @gestor/db prisma:generate &&
       pnpm --filter @gestor/db prisma:deploy &&
       pnpm --filter @gestor/web dev --hostname 0.0.0.0"

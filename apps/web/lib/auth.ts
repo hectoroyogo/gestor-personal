@@ -1,6 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual, createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { prisma } from "@gestor/db";
 
@@ -60,7 +61,7 @@ export async function clearSession() {
   cookieStore.delete(process.env.COOKIE_NAME ?? "gestor_session");
 }
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async function getCurrentUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get(process.env.COOKIE_NAME ?? "gestor_session")?.value;
 
@@ -85,7 +86,7 @@ export async function getCurrentUser() {
   }
 
   return session.user;
-}
+});
 
 export async function requireCurrentUser() {
   const user = await getCurrentUser();
