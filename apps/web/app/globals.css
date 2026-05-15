@@ -1572,6 +1572,79 @@ html[data-theme="dark"] .glassSelect option {
   background: rgba(93, 212, 132, 0.16);
 }
 
+/* Agenda */
+.agendaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.agendaCard {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.agendaCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.agendaCardHeader > div {
+  min-width: 0;
+}
+
+.agendaCardHeader span:last-child {
+  display: block;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agendaIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+}
+
+.agendaTextarea {
+  width: 100%;
+  min-height: 260px;
+  resize: vertical;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  outline: 0;
+  padding: 14px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.035);
+  line-height: 1.6;
+}
+
+.agendaTextarea:focus {
+  border-color: rgba(124, 92, 252, 0.55);
+  background: var(--glass-hover);
+  box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.14);
+}
+
+.agendaActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
 /* Pomodoro */
 .pomodoroWrap {
   min-height: calc(100vh - 180px);
@@ -1619,16 +1692,24 @@ html[data-theme="dark"] .glassSelect option {
   display: grid;
   place-items: center;
   align-content: center;
+  justify-items: center;
+  gap: 8px;
   border: 12px solid rgba(124, 92, 252, 0.18);
   border-top-color: var(--accent-2);
   border-radius: 50%;
   box-shadow: inset 0 0 45px rgba(62, 207, 207, 0.08), var(--shadow-card);
 }
 
-.pomoRing span {
+.pomoRing .pomoTime {
+  width: 100%;
+  display: block;
   font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(44px, 8vw, 72px);
+  font-size: clamp(38px, 6vw, 56px);
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .pomoRing small {
@@ -1700,6 +1781,7 @@ html[data-theme="dark"] .glassSelect option {
   .dashRow,
   .moduleGrid,
   .summaryGrid,
+  .agendaGrid,
   .financeTop,
   .financeGrid,
   .authShell {

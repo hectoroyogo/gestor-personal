@@ -1,6 +1,7 @@
 import { getDashboardOverview, getFinanceScreen, listHabitsForScreen, listTasks } from "@gestor/api";
 
 import { requireCurrentUser } from "../lib/auth";
+import { AgendaScreen } from "./agenda-screen";
 import { DashboardHomeScreen } from "./dashboard-home-screen";
 import { FinanceScreen } from "./finance-screen";
 import { HabitsScreen } from "./habits-screen";
@@ -8,7 +9,7 @@ import { NotesScreen } from "./notes-screen";
 import { PomodoroScreen } from "./pomodoro-screen";
 import { TodoScreen } from "./todo-screen";
 
-export type ScreenId = "dashboard" | "todo" | "habits" | "finance" | "notes" | "pomodoro";
+export type ScreenId = "dashboard" | "todo" | "habits" | "finance" | "notes" | "pomodoro" | "agenda";
 
 type DashboardRouteProps = {
   screen: ScreenId;
@@ -35,6 +36,10 @@ export async function DashboardRoute({ screen }: DashboardRouteProps) {
 
   if (screen === "pomodoro") {
     return <PomodoroScreen />;
+  }
+
+  if (screen === "agenda") {
+    return <AgendaScreen />;
   }
 
   return <DashboardHomeScreen data={await getDashboardOverview(user.id)} userName={user.name} />;

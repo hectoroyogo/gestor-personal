@@ -92,7 +92,7 @@ export function PomodoroScreen() {
           </div>
           <div className="pomoRingWrap">
             <div className="pomoRing">
-              <span>{formatPomodoroTime(pomodoroSeconds)}</span>
+              <span className="pomoTime">{formatPomodoroTime(pomodoroSeconds)}</span>
               <small>{pomodoroMode === "focus" ? "ENFOQUE" : "DESCANSO"}</small>
             </div>
           </div>

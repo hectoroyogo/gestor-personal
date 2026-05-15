@@ -9,7 +9,8 @@ const sections = [
   { href: "/dashboard/habits", label: "Hábitos", icon: "H", group: "Principal" },
   { href: "/dashboard/finance", label: "Finanzas", icon: "€", group: "Principal" },
   { href: "/dashboard/notes", label: "Bóveda de Notas", icon: "N", group: "Extras" },
-  { href: "/dashboard/pomodoro", label: "Pomodoro", icon: "P", group: "Extras" }
+  { href: "/dashboard/pomodoro", label: "Pomodoro", icon: "P", group: "Extras" },
+  { href: "/dashboard/agenda", label: "Agenda", icon: "A", group: "Extras" }
 ] as const;
 
 export default async function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
