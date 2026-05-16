@@ -11,7 +11,7 @@ El proyecto esta pensado para uso personal: entrar, ver que requiere atencion, a
 - Crear habitos y marcar el progreso en un calendario visual.
 - Registrar cuentas, categorias, presupuestos, transacciones y metas de ahorro.
 - Guardar notas locales en el navegador.
-- Usar un Pomodoro para sesiones de enfoque y descansos.
+- Usar un Pomodoro para sesiones de enfoque, descansos, historial editable y mapa de sesiones.
 - Mantener una agenda local para prioridades del dia, vision semanal y cierre.
 - Cambiar entre tema claro y oscuro.
 
