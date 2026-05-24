@@ -44,6 +44,22 @@ function fromDateTimeInputValue(value: string) {
   return new Date(value).toISOString();
 }
 
+function createPomodoroSessionId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  if (window.crypto?.getRandomValues) {
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  return `pomodoro-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function toDayKey(value: string | Date) {
   const date = value instanceof Date ? value : new Date(value);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -160,7 +176,7 @@ export function PomodoroScreen() {
         if (pomodoroMode === "focus") {
           const task = focusTask.trim();
           const completedSession = {
-            id: crypto.randomUUID(),
+            id: createPomodoroSessionId(),
             task: task || "Sesión de enfoque",
             completedAt: new Date().toISOString(),
             durationMinutes: Math.round(secondsForMode("focus") / 60)
